@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | KWAREWA</title>
+</head>
+<body>
+    <h1>Join KWAREWA</h1>
+    <p>Create an account to prepare to advertise your services or products.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Create Account</button>
+    </form>
+
+    <p>Already have an account?
+        <a href="{% url 'login' %}">Log in</a>
+    </p>
+
+    <p><a href="/">Back to homepage</a></p>
+</body>
+</html>
