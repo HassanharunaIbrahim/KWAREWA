@@ -1,24 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | KWAREWA</title>
-</head>
-<body>
-    <h1>Welcome Back</h1>
-    <p>Log in to your KWAREWA account.</p>
+{% extends "marketplace/base.html" %}
 
-    <form method="post">
+{% block title %}Log in | KWAREWA{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Welcome back</h1>
+        <p>Log in to manage your listings.</p>
+    </div>
+
+    <form class="form-card narrow" method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Log In</button>
+        <input type="hidden" name="next" value="{{ next }}">
+        {% include "marketplace/_form_fields.html" %}
+        <div class="form-actions">
+            <button type="submit" class="btn">Log in</button>
+        </div>
+        <p class="form-foot">New to KWAREWA? <a href="{% url 'register' %}">Create an account</a></p>
     </form>
-
-    <p>New to KWAREWA?
-        <a href="{% url 'register' %}">Create an account</a>
-    </p>
-
-    <p><a href="/">Back to homepage</a></p>
-</body>
-</html>
+</div>
+{% endblock %}

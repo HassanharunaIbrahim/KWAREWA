@@ -1,27 +1,44 @@
+from django.conf import settings
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
-# Create your models here.
+phone_validator = RegexValidator(
+    regex=r"^\+?\d{10,15}$",
+    message="Digits only with country code, e.g. 2348012345678.",
+)
 
-from django.db import models
+
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(unique=True)
+
+    class Meta:
+        verbose_name_plural = "categories"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
 
 
 class Listing(models.Model):
+    class ListingType(models.TextChoices):
+        SERVICE = "service", "Service"
+        PRODUCT = "product", "Product"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending review"
+        ACTIVE = "active", "Active"
+        CLOSED = "closed", "Closed / sold"
+
     owner = models.ForeignKey(
-        "auth.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
         related_name="listings",
     )
-    LISTING_TYPES = [
-        ("service", "Service"),
-        ("product", "Product"),
-    ]
-
     title = models.CharField(max_length=200)
-    listing_type = models.CharField(
-        max_length=10,
-        choices=LISTING_TYPES,
+    listing_type = models.CharField(max_length=10, choices=ListingType.choices)
+    category = models.ForeignKey(
+        Category, on_delete=models.PROTECT, related_name="listings"
     )
     description = models.TextField()
     price = models.DecimalField(
@@ -29,15 +46,34 @@ class Listing(models.Model):
         decimal_places=2,
         null=True,
         blank=True,
+        validators=[MinValueValidator(0)],
     )
-    category = models.CharField(max_length=100)
-    location = models.CharField(max_length=150)
-    contact_phone = models.CharField(max_length=20)
+    location = models.CharField(max_length=150, db_index=True)
+    contact_phone = models.CharField(max_length=20, validators=[phone_validator])
     contact_whatsapp = models.CharField(
-        max_length=20,
-        blank=True,
+        max_length=20, blank=True, validators=[phone_validator]
+    )
+    # Switch the default to PENDING once admin moderation is ready.
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.ACTIVE
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["listing_type", "status"])]
 
     def __str__(self):
         return self.title
+
+
+class ListingImage(models.Model):
+    listing = models.ForeignKey(
+        Listing, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.ImageField(upload_to="listings/%Y/%m/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.listing.title}"

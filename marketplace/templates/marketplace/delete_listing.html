@@ -1,26 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delete Listing | KWAREWA</title>
-</head>
-<body>
+{% extends "marketplace/base.html" %}
 
-    <h1>Delete Listing</h1>
+{% block title %}Delete listing | KWAREWA{% endblock %}
 
-    <p>Are you sure you want to delete:</p>
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Delete this listing?</h1>
+        <p>This cannot be undone.</p>
+    </div>
 
-    <h2>{{ listing.title }}</h2>
-
-    <form method="post">
+    <form class="form-card narrow" method="post">
         {% csrf_token %}
-        <button type="submit">Yes, Delete</button>
+        <p><strong>{{ listing.title }}</strong></p>
+        <div class="form-actions">
+            <button type="submit" class="btn danger">Yes, delete</button>
+            <a class="btn secondary" href="{% url 'my_listings' %}">Keep it</a>
+        </div>
     </form>
-
-    <p>
-        <a href="{% url 'my_listings' %}">Cancel</a>
-    </p>
-
-</body>
-</html>
+</div>
+{% endblock %}

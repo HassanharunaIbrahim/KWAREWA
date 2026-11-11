@@ -138,6 +138,11 @@
                 {% for listing in listings %}
 
                     <article class="listing">
+                        {% with img=listing.images.first %}
+                            {% if img %}
+                                <img class="thumb" src="{{ img.image.url }}" alt="{{ listing.title }}" loading="lazy">
+                            {% endif %}
+                        {% endwith %}
 
                         <span class="badge {{ listing.listing_type }}">
                             {{ listing.get_listing_type_display }}

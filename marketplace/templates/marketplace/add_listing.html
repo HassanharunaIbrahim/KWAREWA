@@ -1,21 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Listing | KWAREWA</title>
-</head>
-<body>
-    <h1>Publish on KWAREWA</h1>
-    <p>Advertise your services or products to people in your area.</p>
+{% extends "marketplace/base.html" %}
 
-    <form method="post">
+{% block title %}Publish a listing | KWAREWA{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Publish a listing</h1>
+        <p>Tell people in Zaria what you offer. Add a clear photo to get more calls.</p>
+    </div>
+
+    <form class="form-card" method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        {{ form.as_p }}
-
-        <button type="submit">Publish Listing</button>
+        {% include "marketplace/_form_fields.html" %}
+        <div class="form-actions">
+            <button type="submit" class="btn">Publish listing</button>
+            <a class="btn secondary" href="{% url 'home' %}">Cancel</a>
+        </div>
     </form>
-
-    <p><a href="/">Back to homepage</a></p>
-</body>
-</html>
+</div>
+{% endblock %}

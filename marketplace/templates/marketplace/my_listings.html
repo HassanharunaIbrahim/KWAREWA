@@ -1,59 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Listings | KWAREWA</title>
-</head>
-<body>
+{% extends "marketplace/base.html" %}
 
-    <h1>My Listings</h1>
+{% block title %}My listings | KWAREWA{% endblock %}
 
-    <p>Manage the services and products you have published.</p>
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>My listings</h1>
+        <p>Manage what you have published on KWAREWA.</p>
+    </div>
 
-    <a href="/">Back to Homepage</a>
-    |
-    <a href="/add-listing/">Add New Listing</a>
-
-    <hr>
-
-    {% if listings %}
+    <div class="my-list">
         {% for listing in listings %}
+        <article class="my-item">
+            {% with img=listing.images.all.0 %}
+                {% if img %}
+                    <img src="{{ img.image.url }}" alt="{{ listing.title }}">
+                {% else %}
+                    <div class="noimg"></div>
+                {% endif %}
+            {% endwith %}
 
-            <h2>{{ listing.title }}</h2>
-            <a href="{% url 'edit_listing' listing.id %}">Edit Listing</a>
-            <form method="post" action="{% url 'delete_listing' listing.id %}">
-    {% csrf_token %}
-    <button type="submit">Delete Listing</button>
-</form>
+            <div>
+                <h3>{{ listing.title }}<span class="status {{ listing.status }}">{{ listing.get_status_display }}</span></h3>
+                <div class="sub">{{ listing.get_listing_type_display }} &middot; {{ listing.category }} &middot; {{ listing.location }}</div>
+            </div>
 
-            <p>
-                <strong>Type:</strong>
-                {{ listing.get_listing_type_display }}
-            </p>
-
-            <p>
-                <strong>Category:</strong>
-                {{ listing.category }}
-            </p>
-
-            <p>
-                <strong>Location:</strong>
-                {{ listing.location }}
-            </p>
-
-            <p>{{ listing.description }}</p>
-
-            {% if listing.price %}
-                <p><strong>Price:</strong> {{ listing.price }}</p>
-            {% endif %}
-
-            <hr>
-
+            <div class="my-actions">
+                <a class="btn secondary small" href="{% url 'edit_listing' listing.id %}">Edit</a>
+                <a class="btn danger small" href="{% url 'delete_listing' listing.id %}">Delete</a>
+            </div>
+        </article>
+        {% empty %}
+        <div class="empty">
+            <p>You have not published anything yet.</p>
+            <a href="{% url 'add_listing' %}">Publish your first listing</a>
+        </div>
         {% endfor %}
-    {% else %}
-        <p>You haven't published any listings yet.</p>
-    {% endif %}
-
-</body>
-</html>
+    </div>
+</div>
+{% endblock %}

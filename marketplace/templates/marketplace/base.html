@@ -1,0 +1,58 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}KWAREWA | Find Services and Buy Locally in Zaria{% endblock %}</title>
+    <meta name="description" content="{% block description %}Find skilled workers and good deals in Zaria, Nigeria.{% endblock %}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'marketplace/style.css' %}">
+</head>
+<body>
+
+<header class="topbar">
+    <div class="wrap">
+        <a class="brand" href="{% url 'home' %}">KWAREWA</a>
+
+        <nav class="nav" aria-label="Account">
+            {% if user.is_authenticated %}
+                <span class="welcome">Hello, {{ user.username }}</span>
+                <a href="{% url 'my_listings' %}">My listings</a>
+                <a class="btn-publish" href="{% url 'add_listing' %}">Publish listing</a>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="linklike">Log out</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}">Log in</a>
+                <a class="btn-publish" href="{% url 'register' %}">Create account</a>
+            {% endif %}
+        </nav>
+    </div>
+</header>
+
+{% if messages %}
+<div class="wrap">
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<main>
+{% block content %}{% endblock %}
+</main>
+
+<footer>
+    <div class="wrap">
+        &copy; {% now "Y" %} KWAREWA. Made in Zaria, Nigeria.
+    </div>
+</footer>
+
+</body>
+</html>

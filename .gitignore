@@ -1,4 +1,3 @@
-cat > .gitignore <<'EOF'
 # Python
 __pycache__/
 *.py[cod]
@@ -7,8 +6,10 @@ __pycache__/
 .venv/
 venv/
 
-# Django database
+# Django database and uploads
 db.sqlite3
+media/
+staticfiles/
 
 # Private settings
 .env
@@ -17,4 +18,3 @@ db.sqlite3
 .vscode/
 .DS_Store
 Thumbs.db
-EOF
