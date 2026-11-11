@@ -55,7 +55,7 @@ class Listing(models.Model):
     )
     # Switch the default to PENDING once admin moderation is ready.
     status = models.CharField(
-        max_length=10, choices=Status.choices, default=Status.ACTIVE
+        max_length=10, choices=Status.choices, default=Status.PENDING
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
