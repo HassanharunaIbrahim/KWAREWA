@@ -1,0 +1,13 @@
+{% extends "marketplace/base.html" %}
+
+{% block title %}Report sent | KWAREWA{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Thank you</h1>
+        <p>Your report was sent. Our team will review the listing.</p>
+    </div>
+    <a class="btn" href="{% url 'home' %}">Back to all listings</a>
+</div>
+{% endblock %}

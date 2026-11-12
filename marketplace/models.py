@@ -77,3 +77,45 @@ class ListingImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.listing.title}"
+
+
+
+class Report(models.Model):
+    class Reason(models.TextChoices):
+        SCAM = "scam", "Scam or fraud"
+        FAKE = "fake", "Fake or misleading listing"
+        PROHIBITED = "prohibited", "Prohibited item or service"
+        DUPLICATE = "duplicate", "Duplicate listing"
+        OTHER = "other", "Other"
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        REVIEWED = "reviewed", "Reviewed"
+        DISMISSED = "dismissed", "Dismissed"
+
+    listing = models.ForeignKey(
+        Listing, on_delete=models.CASCADE, related_name="reports"
+    )
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="listing_reports",
+    )
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    details = models.TextField(blank=True, max_length=1000)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.OPEN
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["listing", "reporter"],
+                name="one_report_per_user_per_listing",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.get_reason_display()} - {self.listing.title}"

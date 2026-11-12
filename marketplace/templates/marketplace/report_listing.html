@@ -1,0 +1,21 @@
+{% extends "marketplace/base.html" %}
+
+{% block title %}Report listing | KWAREWA{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Report this listing</h1>
+        <p>{{ listing.title }}</p>
+    </div>
+
+    <form class="form-card narrow" method="post">
+        {% csrf_token %}
+        {% include "marketplace/_form_fields.html" %}
+        <div class="form-actions">
+            <button type="submit" class="btn danger">Send report</button>
+            <a class="btn secondary" href="{% url 'listing_detail' listing.id %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

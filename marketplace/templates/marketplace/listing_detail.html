@@ -1,0 +1,77 @@
+{% extends "marketplace/base.html" %}
+
+{% block title %}{{ listing.title }} | KWAREWA{% endblock %}
+{% block description %}{{ listing.description|truncatewords:25 }}{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <p class="crumbs"><a href="{% url 'home' %}">&larr; Back to all listings</a></p>
+
+    {% if listing.status != "active" %}
+        <div class="notice">
+            This listing is not public yet. Current status: {{ listing.get_status_display }}.
+        </div>
+    {% endif %}
+
+    <div class="detail">
+        <div class="gallery">
+            {% for img in listing.images.all %}
+                {% if forloop.first %}
+                    <img class="main" src="{{ img.image.url }}" alt="{{ listing.title }}">
+                    {% if listing.images.all|length > 1 %}<div class="more">{% endif %}
+                {% else %}
+                    <img src="{{ img.image.url }}" alt="{{ listing.title }}, photo {{ forloop.counter }}" loading="lazy">
+                {% endif %}
+                {% if forloop.last and listing.images.all|length > 1 %}</div>{% endif %}
+            {% empty %}
+                <div class="no-photo">No photo</div>
+            {% endfor %}
+        </div>
+
+        <div class="info">
+            <span class="badge {{ listing.listing_type }}">{{ listing.get_listing_type_display }}</span>
+            <h1>{{ listing.title }}</h1>
+
+            {% if listing.price %}
+                <p class="price">₦{{ listing.price|floatformat:2 }}</p>
+            {% endif %}
+
+            <ul class="facts">
+                <li><span>Category</span><strong>{{ listing.category }}</strong></li>
+                <li><span>Location</span><strong>{{ listing.location }}</strong></li>
+                <li><span>Posted</span><strong>{{ listing.created_at|date:"j M Y" }}</strong></li>
+                <li><span>Posted by</span><strong>{{ listing.owner.username }}</strong></li>
+            </ul>
+
+            <div class="description">{{ listing.description|linebreaks }}</div>
+
+            <div class="contact">
+                {% if listing.contact_phone %}
+                    <a href="tel:{{ listing.contact_phone }}">Call</a>
+                {% endif %}
+                {% if listing.contact_whatsapp %}
+                    <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                {% endif %}
+            </div>
+
+            <p class="safety">
+                Stay safe: never pay before you see the item or the work, and meet in a public place.
+            </p>
+
+            {% if is_owner %}
+                <div class="form-actions">
+                    <a class="btn secondary small" href="{% url 'edit_listing' listing.id %}">Edit this listing</a>
+                </div>
+            {% elif listing.status == "active" %}
+                <p class="report-link">
+                    {% if already_reported %}
+                        You reported this listing. Thank you.
+                    {% else %}
+                        Something wrong? <a href="{% url 'report_listing' listing.id %}">Report this listing</a>
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
