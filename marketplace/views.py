@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from .forms import ListingForm, ReportForm
 from .models import Listing, ListingImage, Report
@@ -136,15 +137,25 @@ def my_listings(request):
 @login_required
 def edit_listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id, owner=request.user)
+    was_active = listing.status == Listing.Status.ACTIVE
 
     if request.method == "POST":
         form = ListingForm(request.POST, request.FILES, instance=listing)
         if form.is_valid():
-            form.save()
+            listing = form.save(commit=False)
+            if was_active:
+                listing.status = Listing.Status.PENDING
+            listing.save()
             photo = form.cleaned_data.get("photo")
             if photo:
                 ListingImage.objects.create(listing=listing, image=photo)
-            messages.success(request, "Your listing was updated.")
+            if was_active:
+                messages.success(
+                    request,
+                    "Your changes were saved. The listing is waiting for review again.",
+                )
+            else:
+                messages.success(request, "Your listing was updated.")
             return redirect("my_listings")
     else:
         form = ListingForm(instance=listing)
@@ -154,6 +165,16 @@ def edit_listing(request, listing_id):
         "marketplace/edit_listing.html",
         {"form": form, "listing": listing},
     )
+
+
+@login_required
+@require_POST
+def close_listing(request, listing_id):
+    listing = get_object_or_404(Listing, id=listing_id, owner=request.user)
+    listing.status = Listing.Status.CLOSED
+    listing.save(update_fields=["status", "updated_at"])
+    messages.success(request, "Marked as sold. It is no longer shown publicly.")
+    return redirect("my_listings")
 
 
 @login_required

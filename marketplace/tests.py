@@ -128,3 +128,45 @@ class ReportTests(BaseTestCase):
             self.client.logout()
         self.listing.refresh_from_db()
         self.assertEqual(self.listing.status, Listing.Status.PENDING)
+class LifecycleTests(BaseTestCase):
+    def valid_data(self):
+        return {
+            "title": "Edited title",
+            "listing_type": "service",
+            "category": self.category.id,
+            "description": "New text",
+            "price": "",
+            "location": "Zaria",
+            "contact_phone": "2348012345678",
+            "contact_whatsapp": "",
+        }
+
+    def test_editing_active_listing_sends_it_back_to_pending(self):
+        listing = self.make_listing(status=Listing.Status.ACTIVE)
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("edit_listing", args=[listing.id]), self.valid_data())
+        listing.refresh_from_db()
+        self.assertEqual(listing.status, Listing.Status.PENDING)
+        self.assertEqual(listing.title, "Edited title")
+
+    def test_owner_can_mark_listing_as_sold(self):
+        listing = self.make_listing(title="Sold item", status=Listing.Status.ACTIVE)
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("close_listing", args=[listing.id]))
+        listing.refresh_from_db()
+        self.assertEqual(listing.status, Listing.Status.CLOSED)
+        self.assertNotContains(self.client.get(reverse("home")), "Sold item")
+
+    def test_other_user_cannot_mark_listing_as_sold(self):
+        listing = self.make_listing(status=Listing.Status.ACTIVE)
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.post(reverse("close_listing", args=[listing.id]))
+        self.assertEqual(response.status_code, 404)
+        listing.refresh_from_db()
+        self.assertEqual(listing.status, Listing.Status.ACTIVE)
+
+    def test_mark_sold_requires_post(self):
+        listing = self.make_listing(status=Listing.Status.ACTIVE)
+        self.client.login(username="owner", password=PASSWORD)
+        response = self.client.get(reverse("close_listing", args=[listing.id]))
+        self.assertEqual(response.status_code, 405)

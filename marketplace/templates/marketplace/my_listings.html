@@ -27,6 +27,12 @@
 
             <div class="my-actions">
                 <a class="btn secondary small" href="{% url 'edit_listing' listing.id %}">Edit</a>
+                {% if listing.status == 'active' %}
+                    <form method="post" action="{% url 'close_listing' listing.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn secondary small">Mark as sold</button>
+                    </form>
+                {% endif %}
                 <a class="btn danger small" href="{% url 'delete_listing' listing.id %}">Delete</a>
             </div>
         </article>
