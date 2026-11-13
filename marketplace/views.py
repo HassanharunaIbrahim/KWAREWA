@@ -187,3 +187,13 @@ def delete_listing(request, listing_id):
         return redirect("my_listings")
 
     return render(request, "marketplace/delete_listing.html", {"listing": listing})
+def rules(request):
+    return render(request, "marketplace/rules.html")
+
+
+def privacy(request):
+    return render(request, "marketplace/privacy.html")
+
+
+def help_page(request):
+    return render(request, "marketplace/help.html")

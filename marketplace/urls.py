@@ -12,4 +12,7 @@ urlpatterns = [
     path("my-listings/<int:listing_id>/edit/", views.edit_listing, name="edit_listing"),
     path("my-listings/<int:listing_id>/delete/", views.delete_listing, name="delete_listing"),
     path("my-listings/<int:listing_id>/sold/", views.close_listing, name="close_listing"),
+    path("rules/", views.rules, name="rules"),
+    path("privacy/", views.privacy, name="privacy"),
+    path("help/", views.help_page, name="help_page"),
 ]

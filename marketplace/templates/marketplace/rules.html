@@ -1,0 +1,34 @@
+{% extends "marketplace/base.html" %}
+{% block title %}Marketplace rules | KWAREWA{% endblock %}
+{% block content %}
+<div class="wrap page prose">
+    <div class="page-head"><h1>Marketplace rules</h1></div>
+
+    <h2>What you can post</h2>
+    <p>Real services and items that you own or are able to provide, with an honest description, a fair price and your correct contact number.</p>
+
+    <h2>What is not allowed</h2>
+    <ul>
+        <li>Fake, misleading or duplicate listings</li>
+        <li>Stolen, illegal or dangerous items and services</li>
+        <li>Asking buyers to pay before they see the item or the work</li>
+        <li>Photos or text that belong to someone else</li>
+        <li>Abusive or offensive content</li>
+    </ul>
+
+    <h2>How listings are reviewed</h2>
+    <p>Every new listing is checked by our team before it appears publicly. If you edit an approved listing, it is checked again. Listings that break these rules are removed.</p>
+
+    <h2>Reports</h2>
+    <p>If you see a problem, use <strong>Report this listing</strong> on the listing page. Listings that receive several reports are hidden until our team reviews them.</p>
+
+    <h2>Stay safe</h2>
+    <ul>
+        <li>Never pay before you see the item or the work.</li>
+        <li>Meet in a public place and bring a friend if you can.</li>
+        <li>Check the item before you pay.</li>
+    </ul>
+
+    <p>Questions? See <a href="{% url 'help' %}">Help and contact</a>.</p>
+</div>
+{% endblock %}
