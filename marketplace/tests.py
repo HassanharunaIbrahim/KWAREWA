@@ -170,6 +170,7 @@ class LifecycleTests(BaseTestCase):
         self.client.login(username="owner", password=PASSWORD)
         response = self.client.get(reverse("close_listing", args=[listing.id]))
         self.assertEqual(response.status_code, 405)
+
 class InfoPageTests(TestCase):
     def test_info_pages_load(self):
         for name in ("rules", "privacy", "help"):

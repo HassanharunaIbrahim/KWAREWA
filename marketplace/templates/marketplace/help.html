@@ -1,0 +1,23 @@
+{% extends "marketplace/base.html" %}
+{% block title %}Help and contact | KWAREWA{% endblock %}
+{% block content %}
+<div class="wrap page prose">
+    <div class="page-head"><h1>Help and contact</h1></div>
+
+    <h2>How do I publish a listing?</h2>
+    <p>Create an account, click <strong>Publish listing</strong>, fill in the form and add a photo. Our team reviews it before it appears.</p>
+
+    <h2>Why is my listing not showing?</h2>
+    <p>New and edited listings wait for review. You can see the status in <strong>My listings</strong>.</p>
+
+    <h2>How do I mark something as sold?</h2>
+    <p>Open <strong>My listings</strong> and click <strong>Mark as sold</strong>.</p>
+
+    <h2>How do I report a problem?</h2>
+    <p>Open the listing and click <strong>Report this listing</strong>.</p>
+
+    <h2>Contact the team</h2>
+    <p>Email: <strong>+2349161912987</strong></p>
+    <p>See also the <a href="{% url 'rules' %}">marketplace rules</a> and the <a href="{% url 'privacy' %}">privacy notice</a>.</p>
+</div>
+{% endblock %}

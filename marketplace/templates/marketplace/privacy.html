@@ -1,0 +1,24 @@
+{% extends "marketplace/base.html" %}
+{% block title %}Privacy | KWAREWA{% endblock %}
+{% block content %}
+<div class="wrap page prose">
+    <div class="page-head"><h1>Privacy notice</h1></div>
+    <p>KWAREWA is a test version built as a student project.</p>
+
+    <h2>What we store</h2>
+    <ul>
+        <li>Your username and a protected (hashed) password. We cannot read your password.</li>
+        <li>The listings you publish: title, description, price, location, photos and contact numbers.</li>
+        <li>Reports you send about listings.</li>
+    </ul>
+
+    <h2>What other people can see</h2>
+    <p><strong>The phone and WhatsApp numbers you put in a listing are public</strong> once the listing is approved. Anyone who opens the listing can see them. Only enter numbers you are happy to share.</p>
+
+    <h2>Cookies</h2>
+    <p>We use a login cookie so that you stay signed in. We do not use advertising cookies.</p>
+
+    <h2>Deleting your data</h2>
+    <p>You can delete any of your listings from <strong>My listings</strong>. To remove your account, contact us through <a href="{% url 'help' %}">Help and contact</a>.</p>
+</div>
+{% endblock %}
