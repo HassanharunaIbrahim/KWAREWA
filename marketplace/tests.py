@@ -176,3 +176,58 @@ class InfoPageTests(TestCase):
         for name in ("rules", "privacy", "help"):
             with self.subTest(page=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+
+class SearchFilterTests(BaseTestCase):
+    def setUp(self):
+        self.phones = Category.objects.create(name="Phones", slug="phones")
+
+    def active(self, **kwargs):
+        kwargs.setdefault("status", Listing.Status.ACTIVE)
+        return self.make_listing(**kwargs)
+
+    def test_filter_by_category(self):
+        self.active(title="Suit sewing")
+        self.active(title="Cheap phone", category=self.phones)
+        response = self.client.get(reverse("home"), {"category": "phones"})
+        self.assertContains(response, "Cheap phone")
+        self.assertNotContains(response, "Suit sewing")
+
+    def test_filter_by_location(self):
+        self.active(title="Samaru tailor", location="Samaru, Zaria")
+        self.active(title="Sabon Gari tailor", location="Sabon Gari")
+        response = self.client.get(reverse("home"), {"location": "samaru"})
+        self.assertContains(response, "Samaru tailor")
+        self.assertNotContains(response, "Sabon Gari tailor")
+
+    def test_filter_by_price_range(self):
+        self.active(title="Low price item", price="1000")
+        self.active(title="Mid price item", price="5000")
+        self.active(title="High price item", price="90000")
+        response = self.client.get(
+            reverse("home"), {"min_price": "2000", "max_price": "10000"}
+        )
+        self.assertContains(response, "Mid price item")
+        self.assertNotContains(response, "Low price item")
+        self.assertNotContains(response, "High price item")
+
+    def test_invalid_price_is_ignored(self):
+        self.active(title="Still visible")
+        response = self.client.get(reverse("home"), {"min_price": "abc"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Still visible")
+
+    def test_sort_by_price_low_to_high(self):
+        self.active(title="Pricey thing", price="9000")
+        self.active(title="Cheap thing", price="500")
+        response = self.client.get(reverse("home"), {"sort": "price_low"})
+        html = response.content.decode()
+        self.assertLess(html.index("Cheap thing"), html.index("Pricey thing"))
+
+    def test_pagination_shows_twelve_per_page(self):
+        for i in range(13):
+            self.active(title=f"Item {i:02d}")
+        first = self.client.get(reverse("home"))
+        self.assertContains(first, "Item 12")
+        self.assertNotContains(first, "Item 00")
+        second = self.client.get(reverse("home"), {"page": 2})
+        self.assertContains(second, "Item 00")

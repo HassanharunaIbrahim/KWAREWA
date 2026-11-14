@@ -1,20 +1,50 @@
+from decimal import Decimal, InvalidOperation
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.core.paginator import Paginator
+from django.db.models import F, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import ListingForm, ReportForm
-from .models import Listing, ListingImage, Report
+from .models import Category, Listing, ListingImage, Report
 
 # A listing goes back to "pending" when this many different users report it.
 REPORT_HIDE_THRESHOLD = 3
+
+# Number of listings shown per page on the homepage.
+PAGE_SIZE = 12
+
+ORDERINGS = {
+    "newest": ("-created_at",),
+    "oldest": ("created_at",),
+    "price_low": (F("price").asc(nulls_last=True), "-created_at"),
+    "price_high": (F("price").desc(nulls_last=True), "-created_at"),
+}
+
+
+def _decimal_or_none(value):
+    """Turn user input into a Decimal, or None when it is empty or invalid."""
+    if not value:
+        return None
+    try:
+        return Decimal(value)
+    except InvalidOperation:
+        return None
 
 
 def home(request):
     query = request.GET.get("q", "").strip()
     listing_type = request.GET.get("type", "").strip()
+    category_slug = request.GET.get("category", "").strip()
+    location = request.GET.get("location", "").strip()
+    min_price_raw = request.GET.get("min_price", "").strip()
+    max_price_raw = request.GET.get("max_price", "").strip()
+    sort = request.GET.get("sort", "newest")
+    if sort not in ORDERINGS:
+        sort = "newest"
 
     listings = (
         Listing.objects.filter(status=Listing.Status.ACTIVE)
@@ -33,12 +63,53 @@ def home(request):
     if listing_type in Listing.ListingType.values:
         listings = listings.filter(listing_type=listing_type)
 
-    listings = listings[:12]
+    if category_slug:
+        listings = listings.filter(category__slug=category_slug)
+
+    if location:
+        listings = listings.filter(location__icontains=location)
+
+    min_price = _decimal_or_none(min_price_raw)
+    max_price = _decimal_or_none(max_price_raw)
+    if min_price is not None:
+        listings = listings.filter(price__gte=min_price)
+    if max_price is not None:
+        listings = listings.filter(price__lte=max_price)
+
+    listings = listings.order_by(*ORDERINGS[sort])
+
+    paginator = Paginator(listings, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Keep the filters in the "Previous / Next" links.
+    params = request.GET.copy()
+    params.pop("page", None)
 
     return render(
         request,
         "marketplace/home.html",
-        {"listings": listings, "query": query, "listing_type": listing_type},
+        {
+            "listings": page_obj,
+            "page_obj": page_obj,
+            "paginator": paginator,
+            "querystring": params.urlencode(),
+            "query": query,
+            "listing_type": listing_type,
+            "categories": Category.objects.all(),
+            "selected_category": category_slug,
+            "location": location,
+            "min_price": min_price_raw,
+            "max_price": max_price_raw,
+            "sort": sort,
+            "has_filters": bool(
+                query
+                or listing_type
+                or category_slug
+                or location
+                or min_price_raw
+                or max_price_raw
+            ),
+        },
     )
 
 
@@ -187,6 +258,8 @@ def delete_listing(request, listing_id):
         return redirect("my_listings")
 
     return render(request, "marketplace/delete_listing.html", {"listing": listing})
+
+
 def rules(request):
     return render(request, "marketplace/rules.html")
 
