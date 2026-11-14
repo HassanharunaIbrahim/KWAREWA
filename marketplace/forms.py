@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Listing, Report
+from .models import ContactMessage, Listing, Report
 
 
 class ListingForm(forms.ModelForm):
@@ -58,5 +58,25 @@ class ReportForm(forms.ModelForm):
         widgets = {
             "details": forms.Textarea(
                 attrs={"rows": 4, "placeholder": "Tell us what happened."}
+            ),
+        }
+
+
+class ContactForm(forms.ModelForm):
+    class Meta:
+        model = ContactMessage
+        fields = ["name", "reply_contact", "topic", "message"]
+        labels = {
+            "name": "Your name",
+            "reply_contact": "Email or WhatsApp number",
+            "topic": "What is this about?",
+            "message": "Your message",
+        }
+        widgets = {
+            "message": forms.Textarea(
+                attrs={
+                    "rows": 6,
+                    "placeholder": "If this is an appeal, name the listing and explain why it should be restored.",
+                }
             ),
         }

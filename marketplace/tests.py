@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Category, Listing, Report
+from .models import Category, ContactMessage, Listing, Report
 
 PASSWORD = "Pass12345!x"
 
@@ -128,6 +128,8 @@ class ReportTests(BaseTestCase):
             self.client.logout()
         self.listing.refresh_from_db()
         self.assertEqual(self.listing.status, Listing.Status.PENDING)
+
+
 class LifecycleTests(BaseTestCase):
     def valid_data(self):
         return {
@@ -171,11 +173,67 @@ class LifecycleTests(BaseTestCase):
         response = self.client.get(reverse("close_listing", args=[listing.id]))
         self.assertEqual(response.status_code, 405)
 
+
 class InfoPageTests(TestCase):
     def test_info_pages_load(self):
         for name in ("rules", "privacy", "help"):
             with self.subTest(page=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+
+
+class ContactTests(BaseTestCase):
+    def message_data(self):
+        return {
+            "name": "Other",
+            "reply_contact": "2348012345678",
+            "topic": "appeal",
+            "message": "Please review my listing.",
+        }
+
+    def test_contact_requires_login(self):
+        response = self.client.get(reverse("contact"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("login", response.url)
+
+    def test_user_can_send_message(self):
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.post(reverse("contact"), self.message_data())
+        self.assertRedirects(response, reverse("help"))
+        self.assertEqual(ContactMessage.objects.count(), 1)
+        self.assertEqual(ContactMessage.objects.first().user, self.other)
+
+    def test_daily_message_limit(self):
+        self.client.login(username="other", password=PASSWORD)
+        for _ in range(6):
+            self.client.post(reverse("contact"), self.message_data())
+        self.assertEqual(ContactMessage.objects.count(), 5)
+
+
+class ListingLimitTests(BaseTestCase):
+    def valid_data(self):
+        return {
+            "title": "New listing",
+            "listing_type": "service",
+            "category": self.category.id,
+            "description": "Some text",
+            "price": "",
+            "location": "Zaria",
+            "contact_phone": "2348012345678",
+            "contact_whatsapp": "",
+        }
+
+    def test_user_under_limit_can_publish(self):
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("add_listing"), self.valid_data())
+        self.assertEqual(Listing.objects.filter(owner=self.owner).count(), 1)
+
+    def test_daily_listing_limit(self):
+        for i in range(5):
+            self.make_listing(title=f"Earlier listing {i}")
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("add_listing"), self.valid_data())
+        self.assertEqual(Listing.objects.filter(owner=self.owner).count(), 5)
+
 
 class SearchFilterTests(BaseTestCase):
     def setUp(self):
@@ -231,6 +289,7 @@ class SearchFilterTests(BaseTestCase):
         self.assertNotContains(first, "Item 00")
         second = self.client.get(reverse("home"), {"page": 2})
         self.assertContains(second, "Item 00")
+
 
 class SellerProfileTests(BaseTestCase):
     def test_seller_page_lists_only_active_listings(self):
