@@ -231,3 +231,30 @@ class SearchFilterTests(BaseTestCase):
         self.assertNotContains(first, "Item 00")
         second = self.client.get(reverse("home"), {"page": 2})
         self.assertContains(second, "Item 00")
+
+class SellerProfileTests(BaseTestCase):
+    def test_seller_page_lists_only_active_listings(self):
+        self.make_listing(title="Active ad", status=Listing.Status.ACTIVE)
+        self.make_listing(title="Pending ad")
+        self.make_listing(title="Sold ad", status=Listing.Status.CLOSED)
+        response = self.client.get(reverse("seller_profile", args=["owner"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Active ad")
+        self.assertNotContains(response, "Pending ad")
+        self.assertNotContains(response, "Sold ad")
+
+    def test_unknown_seller_gives_404(self):
+        response = self.client.get(reverse("seller_profile", args=["nobody"]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_seller_page_does_not_show_email(self):
+        self.owner.email = "private-owner@example.com"
+        self.owner.save()
+        self.make_listing(status=Listing.Status.ACTIVE)
+        response = self.client.get(reverse("seller_profile", args=["owner"]))
+        self.assertNotContains(response, "private-owner@example.com")
+
+    def test_listing_detail_links_to_seller_page(self):
+        listing = self.make_listing(status=Listing.Status.ACTIVE)
+        response = self.client.get(reverse("listing_detail", args=[listing.id]))
+        self.assertContains(response, reverse("seller_profile", args=["owner"]))

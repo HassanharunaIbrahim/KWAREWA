@@ -1,21 +1,28 @@
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import F, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import ListingForm, ReportForm
-from .models import Category, Listing, ListingImage, Report
+from .forms import ContactForm, ListingForm, ReportForm
+from .models import Category, ContactMessage, Listing, ListingImage, Report
 
 # A listing goes back to "pending" when this many different users report it.
 REPORT_HIDE_THRESHOLD = 3
 
 # Number of listings shown per page on the homepage.
 PAGE_SIZE = 12
+
+# Abuse limits (per user, per rolling 24 hours). Staff are exempt from the listing limit.
+MAX_LISTINGS_PER_DAY = 5
+MAX_CONTACTS_PER_DAY = 5
 
 ORDERINGS = {
     "newest": ("-created_at",),
@@ -33,6 +40,10 @@ def _decimal_or_none(value):
         return Decimal(value)
     except InvalidOperation:
         return None
+
+
+def _last_24_hours():
+    return timezone.now() - timedelta(days=1)
 
 
 def home(request):
@@ -179,6 +190,17 @@ def report_thanks(request):
 @login_required
 def add_listing(request):
     if request.method == "POST":
+        posted_today = Listing.objects.filter(
+            owner=request.user, created_at__gte=_last_24_hours()
+        ).count()
+        if posted_today >= MAX_LISTINGS_PER_DAY and not request.user.is_staff:
+            messages.error(
+                request,
+                f"You can publish up to {MAX_LISTINGS_PER_DAY} listings per day. "
+                "Please try again tomorrow.",
+            )
+            return redirect("my_listings")
+
         form = ListingForm(request.POST, request.FILES)
         if form.is_valid():
             listing = form.save(commit=False)
@@ -270,3 +292,50 @@ def privacy(request):
 
 def help_page(request):
     return render(request, "marketplace/help.html")
+
+
+@login_required
+def contact(request):
+    if request.method == "POST":
+        sent_today = ContactMessage.objects.filter(
+            user=request.user, created_at__gte=_last_24_hours()
+        ).count()
+        if sent_today >= MAX_CONTACTS_PER_DAY:
+            messages.error(
+                request,
+                "You have reached today's limit of messages. Please try again tomorrow.",
+            )
+            return redirect("contact")
+
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.user = request.user
+            message.save()
+            messages.success(request, "Thank you. Your message was sent to the team.")
+            return redirect("help")
+    else:
+        form = ContactForm(initial={"name": request.user.get_username()})
+
+    return render(request, "marketplace/contact.html", {"form": form})
+
+
+def seller_profile(request, username):
+    seller = get_object_or_404(get_user_model(), username=username, is_active=True)
+    listings = (
+        Listing.objects.filter(owner=seller, status=Listing.Status.ACTIVE)
+        .select_related("category")
+        .prefetch_related("images")
+    )
+    paginator = Paginator(listings, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return render(
+        request,
+        "marketplace/seller_profile.html",
+        {
+            "seller": seller,
+            "listings": page_obj,
+            "page_obj": page_obj,
+            "paginator": paginator,
+        },
+    )
