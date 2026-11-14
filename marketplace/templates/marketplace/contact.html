@@ -1,0 +1,21 @@
+{% extends "marketplace/base.html" %}
+
+{% block title %}Contact the team | KWAREWA{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Contact the team</h1>
+        <p>Ask a question, appeal a decision about your listing, or report a problem with the site.</p>
+    </div>
+
+    <form class="form-card" method="post">
+        {% csrf_token %}
+        {% include "marketplace/_form_fields.html" %}
+        <div class="form-actions">
+            <button type="submit" class="btn">Send message</button>
+            <a class="btn secondary" href="{% url 'help' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

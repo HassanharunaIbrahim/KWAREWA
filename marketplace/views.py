@@ -1,20 +1,60 @@
+from datetime import timedelta
+from decimal import Decimal, InvalidOperation
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.core.paginator import Paginator
+from django.db.models import F, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import ListingForm, ReportForm
-from .models import Listing, ListingImage, Report
+from .forms import ContactForm, ListingForm, ReportForm
+from .models import Category, ContactMessage, Listing, ListingImage, Report
 
 # A listing goes back to "pending" when this many different users report it.
 REPORT_HIDE_THRESHOLD = 3
+
+# Number of listings shown per page on the homepage.
+PAGE_SIZE = 12
+
+# Abuse limits (per user, per rolling 24 hours). Staff are exempt from the listing limit.
+MAX_LISTINGS_PER_DAY = 5
+MAX_CONTACTS_PER_DAY = 5
+
+ORDERINGS = {
+    "newest": ("-created_at",),
+    "oldest": ("created_at",),
+    "price_low": (F("price").asc(nulls_last=True), "-created_at"),
+    "price_high": (F("price").desc(nulls_last=True), "-created_at"),
+}
+
+
+def _decimal_or_none(value):
+    """Turn user input into a Decimal, or None when it is empty or invalid."""
+    if not value:
+        return None
+    try:
+        return Decimal(value)
+    except InvalidOperation:
+        return None
+
+
+def _last_24_hours():
+    return timezone.now() - timedelta(days=1)
 
 
 def home(request):
     query = request.GET.get("q", "").strip()
     listing_type = request.GET.get("type", "").strip()
+    category_slug = request.GET.get("category", "").strip()
+    location = request.GET.get("location", "").strip()
+    min_price_raw = request.GET.get("min_price", "").strip()
+    max_price_raw = request.GET.get("max_price", "").strip()
+    sort = request.GET.get("sort", "newest")
+    if sort not in ORDERINGS:
+        sort = "newest"
 
     listings = (
         Listing.objects.filter(status=Listing.Status.ACTIVE)
@@ -33,12 +73,53 @@ def home(request):
     if listing_type in Listing.ListingType.values:
         listings = listings.filter(listing_type=listing_type)
 
-    listings = listings[:12]
+    if category_slug:
+        listings = listings.filter(category__slug=category_slug)
+
+    if location:
+        listings = listings.filter(location__icontains=location)
+
+    min_price = _decimal_or_none(min_price_raw)
+    max_price = _decimal_or_none(max_price_raw)
+    if min_price is not None:
+        listings = listings.filter(price__gte=min_price)
+    if max_price is not None:
+        listings = listings.filter(price__lte=max_price)
+
+    listings = listings.order_by(*ORDERINGS[sort])
+
+    paginator = Paginator(listings, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    # Keep the filters in the "Previous / Next" links.
+    params = request.GET.copy()
+    params.pop("page", None)
 
     return render(
         request,
         "marketplace/home.html",
-        {"listings": listings, "query": query, "listing_type": listing_type},
+        {
+            "listings": page_obj,
+            "page_obj": page_obj,
+            "paginator": paginator,
+            "querystring": params.urlencode(),
+            "query": query,
+            "listing_type": listing_type,
+            "categories": Category.objects.all(),
+            "selected_category": category_slug,
+            "location": location,
+            "min_price": min_price_raw,
+            "max_price": max_price_raw,
+            "sort": sort,
+            "has_filters": bool(
+                query
+                or listing_type
+                or category_slug
+                or location
+                or min_price_raw
+                or max_price_raw
+            ),
+        },
     )
 
 
@@ -108,6 +189,17 @@ def report_thanks(request):
 @login_required
 def add_listing(request):
     if request.method == "POST":
+        posted_today = Listing.objects.filter(
+            owner=request.user, created_at__gte=_last_24_hours()
+        ).count()
+        if posted_today >= MAX_LISTINGS_PER_DAY and not request.user.is_staff:
+            messages.error(
+                request,
+                f"You can publish up to {MAX_LISTINGS_PER_DAY} listings per day. "
+                "Please try again tomorrow.",
+            )
+            return redirect("my_listings")
+
         form = ListingForm(request.POST, request.FILES)
         if form.is_valid():
             listing = form.save(commit=False)
@@ -187,6 +279,8 @@ def delete_listing(request, listing_id):
         return redirect("my_listings")
 
     return render(request, "marketplace/delete_listing.html", {"listing": listing})
+
+
 def rules(request):
     return render(request, "marketplace/rules.html")
 
@@ -197,3 +291,29 @@ def privacy(request):
 
 def help_page(request):
     return render(request, "marketplace/help.html")
+
+
+@login_required
+def contact(request):
+    if request.method == "POST":
+        sent_today = ContactMessage.objects.filter(
+            user=request.user, created_at__gte=_last_24_hours()
+        ).count()
+        if sent_today >= MAX_CONTACTS_PER_DAY:
+            messages.error(
+                request,
+                "You have reached today's limit of messages. Please try again tomorrow.",
+            )
+            return redirect("contact")
+
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.user = request.user
+            message.save()
+            messages.success(request, "Thank you. Your message was sent to the team.")
+            return redirect("help")
+    else:
+        form = ContactForm(initial={"name": request.user.get_username()})
+
+    return render(request, "marketplace/contact.html", {"form": form})

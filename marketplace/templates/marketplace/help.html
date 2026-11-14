@@ -16,8 +16,11 @@
     <h2>How do I report a problem?</h2>
     <p>Open the listing and click <strong>Report this listing</strong>.</p>
 
+    <h2>My listing was hidden. Can I appeal?</h2>
+    <p>Yes. <a href="{% url 'contact' %}">Send us a message</a>, choose the topic <strong>Appeal a decision about my listing</strong>, name the listing and explain why it should be restored.</p>
+
     <h2>Contact the team</h2>
-    <p>Email: <strong>+2349161912987</strong></p>
+    <p>Logged-in users can <a href="{% url 'contact' %}">send us a message</a> for questions or problems with the site.</p>
     <p>See also the <a href="{% url 'rules' %}">marketplace rules</a> and the <a href="{% url 'privacy' %}">privacy notice</a>.</p>
 </div>
 {% endblock %}

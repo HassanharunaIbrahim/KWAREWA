@@ -176,3 +176,61 @@ class InfoPageTests(TestCase):
         for name in ("rules", "privacy", "help"):
             with self.subTest(page=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+
+
+
+from .models import ContactMessage
+
+
+class ContactTests(BaseTestCase):
+    def message_data(self):
+        return {
+            "name": "Other",
+            "reply_contact": "2348012345678",
+            "topic": "appeal",
+            "message": "Please review my listing.",
+        }
+
+    def test_contact_requires_login(self):
+        response = self.client.get(reverse("contact"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("login", response.url)
+
+    def test_user_can_send_message(self):
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.post(reverse("contact"), self.message_data())
+        self.assertRedirects(response, reverse("help"))
+        self.assertEqual(ContactMessage.objects.count(), 1)
+        self.assertEqual(ContactMessage.objects.first().user, self.other)
+
+    def test_daily_message_limit(self):
+        self.client.login(username="other", password=PASSWORD)
+        for _ in range(6):
+            self.client.post(reverse("contact"), self.message_data())
+        self.assertEqual(ContactMessage.objects.count(), 5)
+
+
+class ListingLimitTests(BaseTestCase):
+    def valid_data(self):
+        return {
+            "title": "New listing",
+            "listing_type": "service",
+            "category": self.category.id,
+            "description": "Some text",
+            "price": "",
+            "location": "Zaria",
+            "contact_phone": "2348012345678",
+            "contact_whatsapp": "",
+        }
+
+    def test_user_under_limit_can_publish(self):
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("add_listing"), self.valid_data())
+        self.assertEqual(Listing.objects.filter(owner=self.owner).count(), 1)
+
+    def test_daily_listing_limit(self):
+        for i in range(5):
+            self.make_listing(title=f"Earlier listing {i}")
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("add_listing"), self.valid_data())
+        self.assertEqual(Listing.objects.filter(owner=self.owner).count(), 5)
