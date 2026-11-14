@@ -1,213 +1,167 @@
+{% extends "marketplace/base.html" %}
 
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="stylesheet" href="{% static 'marketplace/style.css' %}">
-
-    <title>KWAREWA | Find Services and Buy Locally in Zaria</title>
-
-    <meta name="description" content="Find skilled workers and good deals in Zaria, Nigeria.">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
-</head>
-
-<body>
-
-<header class="topbar">
+{% block content %}
+<section class="hero">
     <div class="wrap">
-        <a class="brand" href="/">KWAREWA</a>
+        <h1>Find skilled workers and good deals in Zaria.</h1>
+        <p class="lead">Mechanics, electricians, tailors, phones, laptops and more, from people in your community.</p>
 
-        <nav class="nav" aria-label="Account">
-            {% if user.is_authenticated %}
-                <span class="welcome">Hello, {{ user.username }}</span>
-                <a href="{% url 'my_listings' %}">My listings</a>
-                <a class="btn-publish" href="{% url 'add_listing' %}">Publish listing</a>
+        <form class="search" method="get" action="{% url 'home' %}" role="search">
+            <label class="sr-only" for="q">Search KWAREWA</label>
+            <input id="q" type="search" name="q" value="{{ query }}" placeholder="What do you need? e.g. generator repair">
+            <button type="submit">Search</button>
 
-                <form method="post" action="{% url 'logout' %}">
-                    {% csrf_token %}
-                    <button type="submit" class="linklike" style="color:#fff;opacity:.9">Log out</button>
-                </form>
-            {% else %}
-                <a href="{% url 'login' %}">Log in</a>
-                <a class="btn-publish" href="{% url 'register' %}">Create account</a>
-            {% endif %}
-        </nav>
+            <fieldset class="seg">
+                <legend class="sr-only">Listing type</legend>
+                <label><input type="radio" name="type" value="" {% if not listing_type %}checked{% endif %}><span>All</span></label>
+                <label><input type="radio" name="type" value="service" {% if listing_type == "service" %}checked{% endif %}><span>Services</span></label>
+                <label><input type="radio" name="type" value="product" {% if listing_type == "product" %}checked{% endif %}><span>Products</span></label>
+            </fieldset>
+        </form>
+
+        <div class="popular">
+            <span>Popular:</span>
+            <a href="/?q=mechanic">Mechanics</a>
+            <a href="/?q=electrician">Electricians</a>
+            <a href="/?q=tailor">Tailors</a>
+            <a href="/?q=phone">Phones</a>
+            <a href="/?q=laptop">Laptops</a>
+            <a href="/?q=furniture">Furniture</a>
+        </div>
     </div>
-</header>
+</section>
 
-<main>
-    <section class="hero">
-        <div class="wrap">
-
-            <h1>Find skilled workers and good deals in Zaria.</h1>
-
-            <p class="lead">
-                Mechanics, electricians, tailors, phones, laptops and more, from people in your community.
-            </p>
-
-            <form class="search" method="get" action="/" role="search">
-                <label class="sr-only" for="q">Search KWAREWA</label>
-
-                <input
-                    id="q"
-                    type="search"
-                    name="q"
-                    value="{{ query }}"
-                    placeholder="What do you need? e.g. generator repair"
-                >
-
-                <button type="submit">Search</button>
-
-                <fieldset class="seg">
-                    <legend class="sr-only">Listing type</legend>
-
-                    <label>
-                        <input type="radio" name="type" value="" {% if not listing_type %}checked{% endif %}>
-                        <span>All</span>
-                    </label>
-
-                    <label>
-                        <input type="radio" name="type" value="service" {% if listing_type == "service" %}checked{% endif %}>
-                        <span>Services</span>
-                    </label>
-
-                    <label>
-                        <input type="radio" name="type" value="product" {% if listing_type == "product" %}checked{% endif %}>
-                        <span>Products</span>
-                    </label>
-                </fieldset>
-            </form>
-
-            <div class="popular">
-                <span>Popular:</span>
-                <a href="/?q=mechanic">Mechanics</a>
-                <a href="/?q=electrician">Electricians</a>
-                <a href="/?q=tailor">Tailors</a>
-                <a href="/?q=phone">Phones</a>
-                <a href="/?q=laptop">Laptops</a>
-                <a href="/?q=furniture">Furniture</a>
-            </div>
-
+<div class="wrap">
+    <section class="block" aria-labelledby="browse-title">
+        <div class="section-head"><h2 id="browse-title">Browse by type</h2></div>
+        <div class="browse">
+            <a class="panel services" href="/?type=service">
+                <h3>Find a service</h3>
+                <p>Electricians, mechanics, tailors and other skilled workers near you.</p>
+                <span class="go">Browse services</span>
+            </a>
+            <a class="panel products" href="/?type=product">
+                <h3>Buy and sell goods</h3>
+                <p>Phones, laptops, cars, furniture and more from local sellers.</p>
+                <span class="go">Browse products</span>
+            </a>
         </div>
     </section>
 
-    <div class="wrap">
+    <section class="block" aria-labelledby="listings-title">
+        <div class="section-head">
+            <h2 id="listings-title">{% if has_filters %}Search results{% else %}Recent listings{% endif %}</h2>
+            {% if paginator.count %}<span class="count">{{ paginator.count }} found</span>{% endif %}
+        </div>
 
-        <section class="block" aria-labelledby="browse-title">
-            <div class="section-head">
-                <h2 id="browse-title">Browse by type</h2>
-            </div>
+        <details class="filters" {% if selected_category or location or min_price or max_price or sort != "newest" %}open{% endif %}>
+            <summary>Filters and sorting</summary>
+            <form method="get" action="{% url 'home' %}" class="filter-form">
+                <input type="hidden" name="q" value="{{ query }}">
+                <input type="hidden" name="type" value="{{ listing_type }}">
 
-            <div class="browse">
-                <a class="panel services" href="/?type=service">
-                    <h3>Find a service</h3>
-                    <p>Electricians, mechanics, tailors and other skilled workers near you.</p>
-                    <span class="go">Browse services</span>
-                </a>
+                <div class="field">
+                    <label for="f-category">Category</label>
+                    <select id="f-category" name="category">
+                        <option value="">All categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category.slug }}" {% if category.slug == selected_category %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-                <a class="panel products" href="/?type=product">
-                    <h3>Buy and sell goods</h3>
-                    <p>Phones, laptops, cars, furniture and more from local sellers.</p>
-                    <span class="go">Browse products</span>
-                </a>
-            </div>
-        </section>
+                <div class="field">
+                    <label for="f-location">Location</label>
+                    <input id="f-location" type="text" name="location" value="{{ location }}" placeholder="e.g. Samaru">
+                </div>
 
-        <section class="block" aria-labelledby="listings-title">
-            <div class="section-head">
-                <h2 id="listings-title">
-                    {% if query or listing_type %}
-                        Search results
-                    {% else %}
-                        Recent listings
+                <div class="field">
+                    <label for="f-min">Lowest price (₦)</label>
+                    <input id="f-min" type="number" name="min_price" min="0" step="any" value="{{ min_price }}">
+                </div>
+
+                <div class="field">
+                    <label for="f-max">Highest price (₦)</label>
+                    <input id="f-max" type="number" name="max_price" min="0" step="any" value="{{ max_price }}">
+                </div>
+
+                <div class="field">
+                    <label for="f-sort">Sort by</label>
+                    <select id="f-sort" name="sort">
+                        <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest first</option>
+                        <option value="oldest" {% if sort == "oldest" %}selected{% endif %}>Oldest first</option>
+                        <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>Price: low to high</option>
+                        <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>Price: high to low</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn small">Apply</button>
+                    <a class="btn secondary small" href="{% url 'home' %}">Clear all</a>
+                </div>
+            </form>
+        </details>
+
+        <div class="listings">
+            {% for listing in listings %}
+            <article class="listing">
+                {% with img=listing.images.all.0 %}
+                    {% if img %}
+                        <img class="thumb" src="{{ img.image.url }}" alt="{{ listing.title }}" loading="lazy">
                     {% endif %}
-                </h2>
+                {% endwith %}
 
-                {% if listings %}
-                    <span class="count">{{ listings|length }} found</span>
-                {% endif %}
+                <span class="badge {{ listing.listing_type }}">{{ listing.get_listing_type_display }}</span>
+                <h3><a href="{% url 'listing_detail' listing.id %}">{{ listing.title }}</a></h3>
+                <p class="desc">{{ listing.description|truncatewords:25 }}</p>
+
+                <ul class="meta">
+                    <li><strong>Category:</strong> {{ listing.category }}</li>
+                    <li><strong>Location:</strong> {{ listing.location }}</li>
+                </ul>
+
+                {% if listing.price %}<p class="price">₦{{ listing.price|floatformat:2 }}</p>{% endif %}
+
+                <div class="contact">
+                    {% if listing.contact_phone %}
+                        <a href="tel:{{ listing.contact_phone }}">Call</a>
+                    {% endif %}
+                    {% if listing.contact_whatsapp %}
+                        <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                    {% endif %}
+                </div>
+            </article>
+            {% empty %}
+            <div class="empty" style="grid-column:1 / -1">
+                <p>No listings match your search.</p>
+                <a href="{% url 'home' %}">Show all listings</a>
             </div>
+            {% endfor %}
+        </div>
 
-            <div class="listings">
-                {% for listing in listings %}
-
-                    <article class="listing">
-                        {% with img=listing.images.first %}
-                            {% if img %}
-                                <img class="thumb" src="{{ img.image.url }}" alt="{{ listing.title }}" loading="lazy">
-                            {% endif %}
-                        {% endwith %}
-
-                        <span class="badge {{ listing.listing_type }}">
-                            {{ listing.get_listing_type_display }}
-                        </span>
-
-                        <h3><a href="{% url 'listing_detail' listing.id %}">{{ listing.title }}</a></h3>
-
-                        <p class="desc">{{ listing.description|truncatewords:25 }}</p>
-
-                        <ul class="meta">
-                            <li><strong>Category:</strong> {{ listing.category }}</li>
-                            <li><strong>Location:</strong> {{ listing.location }}</li>
-                        </ul>
-
-                        {% if listing.price %}
-                            <p class="price">₦{{ listing.price|floatformat:2 }}</p>
-                        {% endif %}
-
-                        <div class="contact">
-                            {% if listing.contact_phone %}
-                                <a href="tel:{{ listing.contact_phone }}">Call</a>
-                            {% endif %}
-
-                            {% if listing.contact_whatsapp %}
-                                <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">
-                                    WhatsApp
-                                </a>
-                            {% endif %}
-                        </div>
-
-                    </article>
-
-                {% empty %}
-
-                    <div class="empty" style="grid-column:1 / -1">
-                        <p>No listings match your search.</p>
-                        <a href="/">Show all listings</a>
-                    </div>
-
-                {% endfor %}
-            </div>
-        </section>
-
-        <section class="cta" aria-labelledby="cta-title">
-            <div>
-                <h2 id="cta-title">Have a skill or something to sell?</h2>
-                <p>Publish your listing and let people in Zaria call or message you on WhatsApp.</p>
-            </div>
-
-            {% if user.is_authenticated %}
-                <a href="{% url 'add_listing' %}">Publish a listing</a>
-            {% else %}
-                <a href="{% url 'register' %}">Create an account</a>
+        {% if page_obj.has_other_pages %}
+        <nav class="pager" aria-label="Pages">
+            {% if page_obj.has_previous %}
+                <a class="btn secondary small" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
             {% endif %}
-        </section>
+            <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a class="btn secondary small" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+            {% endif %}
+        </nav>
+        {% endif %}
+    </section>
 
-    </div>
-</main>
-
-<footer>
-    <div class="wrap">
-        <p class="footer-links"><a href="{% url 'rules' %}">Marketplace rules</a><a href="{% url 'privacy' %}">Privacy</a><a href="{% url 'help' %}">Help and contact</a></p>
-        &copy; {% now "Y" %} KWAREWA. Made in Zaria, Nigeria.
-    </div>
-</footer>
-
-</body>
-</html>
+    <section class="cta" aria-labelledby="cta-title">
+        <div>
+            <h2 id="cta-title">Have a skill or something to sell?</h2>
+            <p>Publish your listing and let people in Zaria call or message you on WhatsApp.</p>
+        </div>
+        {% if user.is_authenticated %}
+            <a href="{% url 'add_listing' %}">Publish a listing</a>
+        {% else %}
+            <a href="{% url 'register' %}">Create an account</a>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

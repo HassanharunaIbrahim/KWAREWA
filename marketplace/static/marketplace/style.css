@@ -187,10 +187,18 @@ footer{padding:36px 0 44px;color:var(--muted);font-size:14px;text-align:center}
 .report-link a{color:var(--danger);font-weight:600}
 @media (max-width:760px){.detail{grid-template-columns:1fr}}
 
-
 .footer-links{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin:0 0 10px}
 .footer-links a{color:var(--green);font-weight:600;text-decoration:none}
 .prose{max-width:720px}
 .prose h2{font-size:22px;margin:28px 0 8px}
 .prose p,.prose li{margin:0 0 10px}
 .prose ul{padding-left:20px;margin:0 0 10px}
+
+/* Filters and pagination */
+.filters{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 18px;margin-bottom:20px}
+.filters summary{cursor:pointer;font-weight:600;padding:14px 0;color:var(--green)}
+.filter-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px 16px;padding-bottom:16px}
+.filter-form .field{margin-bottom:12px}
+.filter-form .field input[type=number]{width:100%;font:inherit;padding:12px 14px;border:1px solid #C5D1CB;border-radius:8px;background:#fff;color:var(--ink)}
+.filter-form .form-actions{grid-column:1 / -1;margin-top:0}
+.pager{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:28px;flex-wrap:wrap;color:var(--muted)}
