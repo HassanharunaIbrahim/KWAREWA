@@ -412,3 +412,10 @@ class PhotoManagementTests(BaseTestCase):
         data["photo"] = make_image_file("sixth.png")
         self.client.post(reverse("edit_listing", args=[listing.id]), data)
         self.assertEqual(listing.images.count(), 5)
+class EditPageRenderingTests(BaseTestCase):
+    def test_edit_page_renders_the_form(self):
+        listing = self.make_listing()
+        self.client.login(username="owner", password=PASSWORD)
+        response = self.client.get(reverse("edit_listing", args=[listing.id]))
+        self.assertContains(response, "Save changes")
+        self.assertNotContains(response, "def edit_listing")
