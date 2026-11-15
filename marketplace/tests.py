@@ -317,3 +317,98 @@ class SellerProfileTests(BaseTestCase):
         listing = self.make_listing(status=Listing.Status.ACTIVE)
         response = self.client.get(reverse("listing_detail", args=[listing.id]))
         self.assertContains(response, reverse("seller_profile", args=["owner"]))
+
+        
+
+import os
+import shutil
+import tempfile
+from io import BytesIO
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+from PIL import Image
+
+from .models import ListingImage
+
+TEMP_MEDIA = tempfile.mkdtemp()
+
+
+def make_image_file(name="new.png"):
+    buffer = BytesIO()
+    Image.new("RGB", (10, 10), "red").save(buffer, "PNG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA)
+class PhotoManagementTests(BaseTestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA, ignore_errors=True)
+
+    def valid_data(self):
+        return {
+            "title": "With photos",
+            "listing_type": "service",
+            "category": self.category.id,
+            "description": "Some text",
+            "price": "",
+            "location": "Zaria",
+            "contact_phone": "2348012345678",
+            "contact_whatsapp": "",
+        }
+
+    def add_photo(self, listing, name="old.png"):
+        return ListingImage.objects.create(listing=listing, image=make_image_file(name))
+
+    def test_owner_can_remove_own_photo(self):
+        listing = self.make_listing()
+        image = self.add_photo(listing)
+        self.client.login(username="owner", password=PASSWORD)
+        response = self.client.post(reverse("delete_photo", args=[listing.id, image.id]))
+        self.assertRedirects(response, reverse("edit_listing", args=[listing.id]))
+        self.assertFalse(ListingImage.objects.filter(id=image.id).exists())
+
+    def test_other_user_cannot_remove_photo(self):
+        listing = self.make_listing()
+        image = self.add_photo(listing)
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.post(reverse("delete_photo", args=[listing.id, image.id]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(ListingImage.objects.filter(id=image.id).exists())
+
+    def test_remove_photo_requires_post(self):
+        listing = self.make_listing()
+        image = self.add_photo(listing)
+        self.client.login(username="owner", password=PASSWORD)
+        response = self.client.get(reverse("delete_photo", args=[listing.id, image.id]))
+        self.assertEqual(response.status_code, 405)
+
+    def test_removed_photo_file_is_deleted_from_disk(self):
+        listing = self.make_listing()
+        image = self.add_photo(listing)
+        path = image.image.path
+        self.assertTrue(os.path.exists(path))
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("delete_photo", args=[listing.id, image.id]))
+        self.assertFalse(os.path.exists(path))
+
+    def test_photo_can_be_added_when_under_the_limit(self):
+        listing = self.make_listing()
+        self.add_photo(listing)
+        self.client.login(username="owner", password=PASSWORD)
+        data = self.valid_data()
+        data["photo"] = make_image_file("second.png")
+        self.client.post(reverse("edit_listing", args=[listing.id]), data)
+        self.assertEqual(listing.images.count(), 2)
+
+    def test_photo_limit_is_enforced(self):
+        listing = self.make_listing()
+        for i in range(5):
+            self.add_photo(listing, f"p{i}.png")
+        self.client.login(username="owner", password=PASSWORD)
+        data = self.valid_data()
+        data["photo"] = make_image_file("sixth.png")
+        self.client.post(reverse("edit_listing", args=[listing.id]), data)
+        self.assertEqual(listing.images.count(), 5)

@@ -160,3 +160,14 @@ class ContactMessage(models.Model):
     def __str__(self):
         return f"{self.get_topic_display()} from {self.name}"
 
+
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+
+@receiver(post_delete, sender=ListingImage)
+def delete_image_file(sender, instance, **kwargs):
+    """Delete the photo file from disk when its database row is deleted."""
+    if instance.image:
+        instance.image.delete(save=False)
+

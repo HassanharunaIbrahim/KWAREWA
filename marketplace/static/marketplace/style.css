@@ -210,3 +210,11 @@ footer{padding:36px 0 44px;color:var(--muted);font-size:14px;text-align:center}
 .seller-meta{color:var(--muted);margin:8px 0 0}
 .facts a{color:var(--green);font-weight:600;text-decoration:none}
 .facts a:hover{text-decoration:underline}
+
+
+/* Photo manager on the edit page */
+.photo-manager{margin-bottom:20px}
+.photo-manager h2{font-size:20px;margin-bottom:14px}
+.photo-grid{display:flex;flex-wrap:wrap;gap:14px}
+.photo-item{width:130px}
+.photo-item img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;margin-bottom:8px;background:var(--leaf)}

@@ -1,39 +1,39 @@
-@login_required
-def edit_listing(request, listing_id):
-    listing = get_object_or_404(Listing, id=listing_id, owner=request.user)
-    was_active = listing.status == Listing.Status.ACTIVE
+{% extends "marketplace/base.html" %}
 
-    if request.method == "POST":
-        form = ListingForm(request.POST, request.FILES, instance=listing)
-        if form.is_valid():
-            listing = form.save(commit=False)
-            if was_active:
-                listing.status = Listing.Status.PENDING
-            listing.save()
-            photo = form.cleaned_data.get("photo")
-            if photo:
-                ListingImage.objects.create(listing=listing, image=photo)
-            if was_active:
-                messages.success(
-                    request,
-                    "Your changes were saved. The listing is waiting for review again.",
-                )
-            else:
-                messages.success(request, "Your listing was updated.")
-            return redirect("my_listings")
-    else:
-        form = ListingForm(instance=listing)
+{% block title %}Edit listing | KWAREWA{% endblock %}
 
-    return render(
-        request,
-        "marketplace/edit_listing.html",
-        {"form": form, "listing": listing},
-    )
-@login_required
-@require_POST
-def close_listing(request, listing_id):
-    listing = get_object_or_404(Listing, id=listing_id, owner=request.user)
-    listing.status = Listing.Status.CLOSED
-    listing.save(update_fields=["status", "updated_at"])
-    messages.success(request, "Marked as sold. It is no longer shown publicly.")
-    return redirect("my_listings")
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Edit listing</h1>
+        <p>{{ listing.title }}</p>
+    </div>
+
+    {% if listing.images.all %}
+    <section class="form-card photo-manager" aria-labelledby="photos-title">
+        <h2 id="photos-title">Current photos</h2>
+        <div class="photo-grid">
+            {% for img in listing.images.all %}
+            <div class="photo-item">
+                <img src="{{ img.image.url }}" alt="Photo {{ forloop.counter }} of {{ listing.title }}">
+                <form method="post" action="{% url 'delete_photo' listing.id img.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn danger small" onclick="return confirm('Remove this photo?')">Remove</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <form class="form-card" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% include "marketplace/_form_fields.html" %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn">Save changes</button>
+            <a class="btn secondary" href="{% url 'my_listings' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
