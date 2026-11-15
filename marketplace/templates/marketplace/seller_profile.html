@@ -1,0 +1,40 @@
+{% extends "marketplace/base.html" %}
+
+{% block title %}{{ seller.username }} | KWAREWA{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <p class="crumbs"><a href="{% url 'home' %}">&larr; Back to all listings</a></p>
+
+    <div class="seller-head">
+        <h1>{{ seller.username }}</h1>
+        <p class="seller-meta">
+            Member since {{ seller.date_joined|date:"F Y" }}
+            &middot; {{ paginator.count }} active listing{{ paginator.count|pluralize }}
+        </p>
+    </div>
+
+    <div class="listings">
+        {% for listing in listings %}
+            {% include "marketplace/_listing_card.html" %}
+        {% empty %}
+            <div class="empty" style="grid-column:1 / -1">
+                <p>This seller has no active listings right now.</p>
+                <a href="{% url 'home' %}">Browse all listings</a>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="pager" aria-label="Pages">
+        {% if page_obj.has_previous %}
+            <a class="btn secondary small" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a class="btn secondary small" href="?page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

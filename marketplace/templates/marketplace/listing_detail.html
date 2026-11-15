@@ -40,7 +40,7 @@
                 <li><span>Category</span><strong>{{ listing.category }}</strong></li>
                 <li><span>Location</span><strong>{{ listing.location }}</strong></li>
                 <li><span>Posted</span><strong>{{ listing.created_at|date:"j M Y" }}</strong></li>
-                <li><span>Posted by</span><strong>{{ listing.owner.username }}</strong></li>
+                <li><span>Posted by</span><strong><a href="{% url 'seller_profile' listing.owner.username %}">{{ listing.owner.username }}</a></strong></li>
             </ul>
 
             <div class="description">{{ listing.description|linebreaks }}</div>

@@ -1,0 +1,27 @@
+<article class="listing">
+    {% with img=listing.images.all.0 %}
+        {% if img %}
+            <img class="thumb" src="{{ img.image.url }}" alt="{{ listing.title }}" loading="lazy">
+        {% endif %}
+    {% endwith %}
+
+    <span class="badge {{ listing.listing_type }}">{{ listing.get_listing_type_display }}</span>
+    <h3><a href="{% url 'listing_detail' listing.id %}">{{ listing.title }}</a></h3>
+    <p class="desc">{{ listing.description|truncatewords:25 }}</p>
+
+    <ul class="meta">
+        <li><strong>Category:</strong> {{ listing.category }}</li>
+        <li><strong>Location:</strong> {{ listing.location }}</li>
+    </ul>
+
+    {% if listing.price %}<p class="price">₦{{ listing.price|floatformat:2 }}</p>{% endif %}
+
+    <div class="contact">
+        {% if listing.contact_phone %}
+            <a href="tel:{{ listing.contact_phone }}">Call</a>
+        {% endif %}
+        {% if listing.contact_whatsapp %}
+            <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        {% endif %}
+    </div>
+</article>
