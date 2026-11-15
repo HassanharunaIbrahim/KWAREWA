@@ -1,5 +1,5 @@
 # KWAREWA
-
+![Tests](https://github.com/HassanharunaIbrahim/KWAREWA/actions/workflows/tests.yml/badge.svg)
 KWAREWA is a local classifieds marketplace for Zaria, Nigeria. People can find skilled workers (electricians, mechanics, tailors and more) and buy or sell goods (phones, laptops, furniture and more), and contact sellers directly by phone call or WhatsApp.
 
 It is a final-semester computer engineering project, built as a website first, with a mobile app planned later. The idea is inspired by Divar, adapted for a local community, with a strong focus on trust and safety.
