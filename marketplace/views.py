@@ -12,12 +12,19 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .forms import ContactForm, ListingForm, ReportForm
-from .models import Category, ContactMessage, Listing, ListingImage, Report
+from .models import (
+    Category,
+    ContactMessage,
+    Listing,
+    ListingImage,
+    NigerianState,
+    Report,
+)
 
 # A listing goes back to "pending" when this many different users report it.
 REPORT_HIDE_THRESHOLD = 3
 
-# Number of listings shown per page on the homepage.
+# Number of listings shown per page.
 PAGE_SIZE = 12
 
 # Abuse limits (per user, per rolling 24 hours). Staff are exempt from the listing limit.
@@ -53,12 +60,15 @@ def home(request):
     query = request.GET.get("q", "").strip()
     listing_type = request.GET.get("type", "").strip()
     category_slug = request.GET.get("category", "").strip()
+    state = request.GET.get("state", "").strip()
     location = request.GET.get("location", "").strip()
     min_price_raw = request.GET.get("min_price", "").strip()
     max_price_raw = request.GET.get("max_price", "").strip()
     sort = request.GET.get("sort", "newest")
     if sort not in ORDERINGS:
         sort = "newest"
+    if state not in NigerianState.values:
+        state = ""
 
     listings = (
         Listing.objects.filter(status=Listing.Status.ACTIVE)
@@ -79,6 +89,9 @@ def home(request):
 
     if category_slug:
         listings = listings.filter(category__slug=category_slug)
+
+    if state:
+        listings = listings.filter(state=state)
 
     if location:
         listings = listings.filter(location__icontains=location)
@@ -110,7 +123,9 @@ def home(request):
             "query": query,
             "listing_type": listing_type,
             "categories": Category.objects.all(),
+            "states": NigerianState.choices,
             "selected_category": category_slug,
+            "selected_state": state,
             "location": location,
             "min_price": min_price_raw,
             "max_price": max_price_raw,
@@ -119,6 +134,7 @@ def home(request):
                 query
                 or listing_type
                 or category_slug
+                or state
                 or location
                 or min_price_raw
                 or max_price_raw
