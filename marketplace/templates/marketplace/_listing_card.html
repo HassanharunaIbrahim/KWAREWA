@@ -11,7 +11,7 @@
 
     <ul class="meta">
         <li><strong>Category:</strong> {{ listing.category }}</li>
-        <li><strong>Location:</strong> {{ listing.location }}</li>
+        <li><strong>Location:</strong> {{ listing.location }}, {{ listing.get_state_display }}</li>
     </ul>
 
     {% if listing.price %}<p class="price">₦{{ listing.price|floatformat:2 }}</p>{% endif %}

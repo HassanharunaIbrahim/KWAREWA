@@ -34,13 +34,14 @@ class ListingAdmin(admin.ModelAdmin):
         "title",
         "listing_type",
         "category",
+        "state",
         "location",
         "status",
         "owner",
         "report_count",
         "created_at",
     )
-    list_filter = ("status", "listing_type", "category")
+    list_filter = ("status", "listing_type", "state", "category")
     search_fields = ("title", "description", "location", "owner__username")
     inlines = [ListingImageInline, ReportInline]
     actions = ["approve_listings", "mark_pending", "close_listings"]

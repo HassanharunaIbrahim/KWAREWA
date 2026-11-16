@@ -1,10 +1,26 @@
-from django.contrib.auth import get_user_model
-from django.test import TestCase
-from django.urls import reverse
+import os
+import shutil
+import tempfile
+from io import BytesIO
 
-from .models import Category, ContactMessage, Listing, Report
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
+from django.urls import reverse
+from PIL import Image
+
+from .models import Category, ContactMessage, Listing, ListingImage, Report
 
 PASSWORD = "Pass12345!x"
+
+# Photos created by tests go into a temporary folder, never into your real media folder.
+TEMP_MEDIA = tempfile.mkdtemp()
+
+
+def make_image_file(name="new.png"):
+    buffer = BytesIO()
+    Image.new("RGB", (10, 10), "red").save(buffer, "PNG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
 
 
 class BaseTestCase(TestCase):
@@ -138,6 +154,7 @@ class LifecycleTests(BaseTestCase):
             "category": self.category.id,
             "description": "New text",
             "price": "",
+            "state": "kaduna",
             "location": "Zaria",
             "contact_phone": "2348012345678",
             "contact_whatsapp": "",
@@ -217,6 +234,7 @@ class ListingLimitTests(BaseTestCase):
             "category": self.category.id,
             "description": "Some text",
             "price": "",
+            "state": "kaduna",
             "location": "Zaria",
             "contact_phone": "2348012345678",
             "contact_whatsapp": "",
@@ -318,27 +336,6 @@ class SellerProfileTests(BaseTestCase):
         response = self.client.get(reverse("listing_detail", args=[listing.id]))
         self.assertContains(response, reverse("seller_profile", args=["owner"]))
 
-        
-
-import os
-import shutil
-import tempfile
-from io import BytesIO
-
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
-from PIL import Image
-
-from .models import ListingImage
-
-TEMP_MEDIA = tempfile.mkdtemp()
-
-
-def make_image_file(name="new.png"):
-    buffer = BytesIO()
-    Image.new("RGB", (10, 10), "red").save(buffer, "PNG")
-    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
-
 
 @override_settings(MEDIA_ROOT=TEMP_MEDIA)
 class PhotoManagementTests(BaseTestCase):
@@ -354,6 +351,7 @@ class PhotoManagementTests(BaseTestCase):
             "category": self.category.id,
             "description": "Some text",
             "price": "",
+            "state": "kaduna",
             "location": "Zaria",
             "contact_phone": "2348012345678",
             "contact_whatsapp": "",
@@ -412,6 +410,8 @@ class PhotoManagementTests(BaseTestCase):
         data["photo"] = make_image_file("sixth.png")
         self.client.post(reverse("edit_listing", args=[listing.id]), data)
         self.assertEqual(listing.images.count(), 5)
+
+
 class EditPageRenderingTests(BaseTestCase):
     def test_edit_page_renders_the_form(self):
         listing = self.make_listing()
@@ -419,3 +419,48 @@ class EditPageRenderingTests(BaseTestCase):
         response = self.client.get(reverse("edit_listing", args=[listing.id]))
         self.assertContains(response, "Save changes")
         self.assertNotContains(response, "def edit_listing")
+
+
+class NationwideTests(BaseTestCase):
+    def valid_data(self, **extra):
+        data = {
+            "title": "Nationwide listing",
+            "listing_type": "service",
+            "category": self.category.id,
+            "description": "Some text",
+            "price": "",
+            "location": "Ikeja",
+            "contact_phone": "2348012345678",
+            "contact_whatsapp": "",
+        }
+        data.update(extra)
+        return data
+
+    def test_filter_by_state(self):
+        self.make_listing(title="Lagos tailor", state="lagos", status=Listing.Status.ACTIVE)
+        self.make_listing(title="Kano tailor", state="kano", status=Listing.Status.ACTIVE)
+        response = self.client.get(reverse("home"), {"state": "lagos"})
+        self.assertContains(response, "Lagos tailor")
+        self.assertNotContains(response, "Kano tailor")
+
+    def test_unknown_state_filter_is_ignored(self):
+        self.make_listing(title="Still shown", state="kano", status=Listing.Status.ACTIVE)
+        response = self.client.get(reverse("home"), {"state": "narnia"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Still shown")
+
+    def test_listing_shows_state_name(self):
+        self.make_listing(title="Akwa ad", state="akwa-ibom", status=Listing.Status.ACTIVE)
+        response = self.client.get(reverse("seller_profile", args=["owner"]))
+        self.assertContains(response, "Akwa Ibom")
+
+    def test_state_is_required_when_publishing(self):
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("add_listing"), self.valid_data())
+        self.assertEqual(Listing.objects.filter(owner=self.owner).count(), 0)
+
+    def test_publish_with_state(self):
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(reverse("add_listing"), self.valid_data(state="lagos"))
+        listing = Listing.objects.get(owner=self.owner)
+        self.assertEqual(listing.state, "lagos")

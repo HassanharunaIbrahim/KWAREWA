@@ -17,17 +17,22 @@ class ListingForm(forms.ModelForm):
             "category",
             "description",
             "price",
+            "state",
             "location",
             "contact_phone",
             "contact_whatsapp",
         ]
         labels = {
             "listing_type": "Type",
+            "state": "State",
+            "location": "Area or town",
             "contact_phone": "Phone number",
             "contact_whatsapp": "WhatsApp number",
             "price": "Price (₦)",
         }
         help_texts = {
+            "state": "The Nigerian state where the item or service is available.",
+            "location": "For example: Samaru, Zaria",
             "contact_phone": "Digits only with country code, e.g. 2348012345678.",
             "contact_whatsapp": "Optional. Same format as the phone number.",
             "price": "Leave empty for services priced on request.",

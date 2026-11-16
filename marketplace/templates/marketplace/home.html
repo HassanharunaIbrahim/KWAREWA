@@ -3,8 +3,8 @@
 {% block content %}
 <section class="hero">
     <div class="wrap">
-        <h1>Find skilled workers and good deals in Zaria.</h1>
-        <p class="lead">Mechanics, electricians, tailors, phones, laptops and more, from people in your community.</p>
+        <h1>Find skilled workers and good deals across Nigeria.</h1>
+        <p class="lead">Mechanics, electricians, tailors, phones, laptops and more, from people near you.</p>
 
         <form class="search" method="get" action="{% url 'home' %}" role="search">
             <label class="sr-only" for="q">Search KWAREWA</label>
@@ -54,11 +54,21 @@
             {% if paginator.count %}<span class="count">{{ paginator.count }} found</span>{% endif %}
         </div>
 
-        <details class="filters" {% if selected_category or location or min_price or max_price or sort != "newest" %}open{% endif %}>
+        <details class="filters" {% if selected_state or selected_category or location or min_price or max_price or sort != "newest" %}open{% endif %}>
             <summary>Filters and sorting</summary>
             <form method="get" action="{% url 'home' %}" class="filter-form">
                 <input type="hidden" name="q" value="{{ query }}">
                 <input type="hidden" name="type" value="{{ listing_type }}">
+
+                <div class="field">
+                    <label for="f-state">State</label>
+                    <select id="f-state" name="state">
+                        <option value="">All of Nigeria</option>
+                        {% for value, label in states %}
+                            <option value="{{ value }}" {% if value == selected_state %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
                 <div class="field">
                     <label for="f-category">Category</label>
@@ -71,7 +81,7 @@
                 </div>
 
                 <div class="field">
-                    <label for="f-location">Location</label>
+                    <label for="f-location">Area or town</label>
                     <input id="f-location" type="text" name="location" value="{{ location }}" placeholder="e.g. Samaru">
                 </div>
 
@@ -129,7 +139,7 @@
     <section class="cta" aria-labelledby="cta-title">
         <div>
             <h2 id="cta-title">Have a skill or something to sell?</h2>
-            <p>Publish your listing and let people in Zaria call or message you on WhatsApp.</p>
+            <p>Publish your listing and let people across Nigeria call or message you on WhatsApp.</p>
         </div>
         {% if user.is_authenticated %}
             <a href="{% url 'add_listing' %}">Publish a listing</a>
