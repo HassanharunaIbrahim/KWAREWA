@@ -6,7 +6,7 @@ from .models import ContactMessage, Listing, Report
 class ListingForm(forms.ModelForm):
     photo = forms.ImageField(
         required=False,
-        help_text="Optional. JPG or PNG, up to 5 MB.",
+        help_text="Optional. JPG or PNG, up to 5 MB. A listing can have up to 5 photos.",
     )
 
     class Meta:

@@ -20,6 +20,7 @@ Built by: `<HASSAN HARUNA IBRAHIM>`, `<AHLUL-BAYT INTERNATIONAL UNIVERSITY>`
 **For sellers (registered users)**
 - Register, log in, log out
 - Publish a listing with a photo; edit, mark as sold, or delete it
+- Remove photos from a listing (up to 5 photos per listing)
 - "My listings" page showing the review status of each listing
 - Contact and appeal form to reach the team
 
@@ -140,12 +141,11 @@ Back up `db.sqlite3` and the `media/` folder regularly, and keep a copy off the 
 
 - Free-tier hosting has limited CPU time, so this is a test deployment, not a public launch.
 - Password reset by email is not available yet; forgotten passwords are handled by an administrator.
-- Sellers can add photos to a listing but cannot yet remove them.
 - No seller verification and no automatic scam detection.
 
 ## Roadmap
 
-- Photo management (remove and reorder)
+- Photo reordering
 - Password reset by email
 - Seller verification badge
 - IP-based rate limiting
