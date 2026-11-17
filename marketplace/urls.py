@@ -18,4 +18,8 @@ urlpatterns = [
     path("my-listings/<int:listing_id>/photos/<int:image_id>/delete/", views.delete_photo, name="delete_photo"),
     path("my-listings/<int:listing_id>/sold/", views.close_listing, name="close_listing"),
     path("my-listings/<int:listing_id>/delete/", views.delete_listing, name="delete_listing"),
+    # Installable app support
+    path("manifest.webmanifest", views.manifest, name="manifest"),
+    path("sw.js", views.service_worker, name="service_worker"),
+    path("offline/", views.offline, name="offline"),
 ]

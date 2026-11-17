@@ -379,3 +379,27 @@ def seller_profile(request, username):
             "paginator": paginator,
         },
     )
+
+
+# ---- Installable app (Progressive Web App) ----
+
+def manifest(request):
+    return render(
+        request,
+        "marketplace/manifest.webmanifest",
+        content_type="application/manifest+json",
+    )
+
+
+def service_worker(request):
+    response = render(
+        request,
+        "marketplace/sw.js",
+        content_type="application/javascript",
+    )
+    response["Cache-Control"] = "no-cache"
+    return response
+
+
+def offline(request):
+    return render(request, "marketplace/offline.html")

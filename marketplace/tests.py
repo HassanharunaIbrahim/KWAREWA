@@ -464,3 +464,38 @@ class NationwideTests(BaseTestCase):
         self.client.post(reverse("add_listing"), self.valid_data(state="lagos"))
         listing = Listing.objects.get(owner=self.owner)
         self.assertEqual(listing.state, "lagos")
+
+
+import json
+
+
+class InstallableAppTests(TestCase):
+    def test_manifest_is_valid_json_with_icons(self):
+        response = self.client.get(reverse("manifest"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("manifest+json", response["Content-Type"])
+        data = json.loads(response.content)
+        self.assertEqual(data["name"], "KWAREWA")
+        self.assertEqual(data["start_url"], "/")
+        self.assertEqual(data["display"], "standalone")
+        sizes = {icon["sizes"] for icon in data["icons"]}
+        self.assertIn("192x192", sizes)
+        self.assertIn("512x512", sizes)
+
+    def test_service_worker_is_served_from_the_site_root(self):
+        response = self.client.get("/sw.js")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("javascript", response["Content-Type"])
+        self.assertContains(response, "addEventListener")
+
+    def test_offline_page_has_no_account_details(self):
+        user = get_user_model().objects.create_user("secretname", password=PASSWORD)
+        self.client.force_login(user)
+        response = self.client.get(reverse("offline"))
+        self.assertContains(response, "You are offline")
+        self.assertNotContains(response, "secretname")
+
+    def test_pages_link_to_the_manifest(self):
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, 'rel="manifest"')
+        self.assertContains(response, "serviceWorker")
