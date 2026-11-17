@@ -1,0 +1,29 @@
+{% extends "marketplace/base.html" %}
+
+{% block title %}Rate {{ seller.username }} | KWAREWA{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Rate {{ seller.username }}</h1>
+        <p>Your honest rating helps other people choose. You can change it later.</p>
+    </div>
+
+    <form class="form-card narrow" method="post">
+        {% csrf_token %}
+        {% include "marketplace/_form_fields.html" %}
+        <div class="form-actions">
+            <button type="submit" class="btn">Save rating</button>
+            <a class="btn secondary" href="{% url 'seller_profile' seller.username %}">Cancel</a>
+        </div>
+    </form>
+
+    {% if existing %}
+    <form class="form-card narrow remove-rating" method="post" action="{% url 'delete_rating' seller.username %}">
+        {% csrf_token %}
+        <p>Want to take your rating back?</p>
+        <button type="submit" class="btn danger small" onclick="return confirm('Remove your rating?')">Remove my rating</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

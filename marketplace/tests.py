@@ -499,3 +499,94 @@ class InstallableAppTests(TestCase):
         response = self.client.get(reverse("home"))
         self.assertContains(response, 'rel="manifest"')
         self.assertContains(response, "serviceWorker")
+
+
+from django.db import IntegrityError, transaction
+
+from .models import Rating
+
+
+class RatingTests(BaseTestCase):
+    def setUp(self):
+        self.url = reverse("rate_seller", args=["owner"])
+
+    def rate(self, stars=4, comment="Great work"):
+        return self.client.post(self.url, {"stars": stars, "comment": comment})
+
+    def test_rating_requires_login(self):
+        response = self.client.post(self.url, {"stars": 5})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("login", response.url)
+        self.assertEqual(Rating.objects.count(), 0)
+
+    def test_user_can_rate_a_seller(self):
+        self.client.login(username="other", password=PASSWORD)
+        self.rate(5, "Excellent tailor")
+        rating = Rating.objects.get()
+        self.assertEqual(rating.rater, self.other)
+        self.assertEqual(rating.rated_user, self.owner)
+        self.assertEqual(rating.stars, 5)
+
+    def test_rating_again_updates_instead_of_duplicating(self):
+        self.client.login(username="other", password=PASSWORD)
+        self.rate(2, "Late")
+        self.rate(5, "Came back and fixed it")
+        self.assertEqual(Rating.objects.count(), 1)
+        self.assertEqual(Rating.objects.get().stars, 5)
+
+    def test_user_cannot_rate_themselves(self):
+        self.client.login(username="owner", password=PASSWORD)
+        self.rate(5)
+        self.assertEqual(Rating.objects.count(), 0)
+
+    def test_stars_must_be_between_one_and_five(self):
+        self.client.login(username="other", password=PASSWORD)
+        self.rate(6)
+        self.rate(0)
+        self.assertEqual(Rating.objects.count(), 0)
+
+    def test_unknown_seller_gives_404(self):
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.get(reverse("rate_seller", args=["nobody"]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_daily_rating_limit(self):
+        User = get_user_model()
+        for i in range(10):
+            seller = User.objects.create_user(f"seller{i}", password=PASSWORD)
+            Rating.objects.create(rater=self.other, rated_user=seller, stars=4)
+        self.client.login(username="other", password=PASSWORD)
+        self.rate(5)
+        self.assertFalse(Rating.objects.filter(rated_user=self.owner).exists())
+
+    def test_database_blocks_self_rating(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Rating.objects.create(rater=self.owner, rated_user=self.owner, stars=5)
+
+    def test_seller_page_shows_average_and_reviews(self):
+        Rating.objects.create(rater=self.other, rated_user=self.owner, stars=4, comment="Neat stitching")
+        response = self.client.get(reverse("seller_profile", args=["owner"]))
+        self.assertContains(response, "4.0")
+        self.assertContains(response, "Neat stitching")
+
+    def test_listing_page_shows_seller_rating(self):
+        listing = self.make_listing(status=Listing.Status.ACTIVE)
+        Rating.objects.create(rater=self.other, rated_user=self.owner, stars=5)
+        response = self.client.get(reverse("listing_detail", args=[listing.id]))
+        self.assertContains(response, "5.0")
+        self.assertContains(response, "1 rating")
+
+    def test_user_can_remove_own_rating(self):
+        Rating.objects.create(rater=self.other, rated_user=self.owner, stars=3)
+        self.client.login(username="other", password=PASSWORD)
+        self.client.post(reverse("delete_rating", args=["owner"]))
+        self.assertEqual(Rating.objects.count(), 0)
+
+    def test_user_cannot_remove_someone_elses_rating(self):
+        get_user_model().objects.create_user("third", password=PASSWORD)
+        Rating.objects.create(rater=self.other, rated_user=self.owner, stars=3)
+        self.client.login(username="third", password=PASSWORD)
+        response = self.client.post(reverse("delete_rating", args=["owner"]))
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(Rating.objects.count(), 1)

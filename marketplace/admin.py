@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 
-from .models import Category, ContactMessage, Listing, ListingImage, Report
+from .models import Category, ContactMessage, Listing, ListingImage, Rating, Report
 
 
 @admin.register(Category)
@@ -109,3 +109,13 @@ class ContactMessageAdmin(admin.ModelAdmin):
     def mark_closed(self, request, queryset):
         count = queryset.update(status=ContactMessage.Status.CLOSED)
         self.message_user(request, f"{count} message(s) closed.", messages.INFO)
+
+
+@admin.register(Rating)
+class RatingAdmin(admin.ModelAdmin):
+    """Moderators can read every rating and delete unfair or abusive ones."""
+
+    list_display = ("rated_user", "rater", "stars", "updated_at")
+    list_filter = ("stars",)
+    search_fields = ("rated_user__username", "rater__username", "comment")
+    readonly_fields = ("rater", "rated_user", "stars", "comment", "created_at", "updated_at")

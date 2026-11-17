@@ -43,6 +43,20 @@
                 <li><span>Posted by</span><strong><a href="{% url 'seller_profile' listing.owner.username %}">{{ listing.owner.username }}</a></strong></li>
             </ul>
 
+            <p class="rating-line">
+                {% if seller_rating.count %}
+                    <span class="stars">&#9733; {{ seller_rating.average }}</span>
+                    from {{ seller_rating.count }} rating{{ seller_rating.count|pluralize }}
+                    for this seller.
+                {% else %}
+                    No ratings yet for this seller.
+                {% endif %}
+                <a href="{% url 'seller_profile' listing.owner.username %}">See reviews</a>
+                {% if user.is_authenticated and not is_owner %}
+                    &middot; <a href="{% url 'rate_seller' listing.owner.username %}">Rate this seller</a>
+                {% endif %}
+            </p>
+
             <div class="description">{{ listing.description|linebreaks }}</div>
 
             <div class="contact">
