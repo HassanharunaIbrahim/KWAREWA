@@ -1,26 +1,29 @@
 # KWAREWA
-![Tests](https://github.com/HassanharunaIbrahim/KWAREWA/actions/workflows/tests.yml/badge.svg)
-KWAREWA is a local classifieds marketplace for Zaria, Nigeria. People can find skilled workers (electricians, mechanics, tailors and more) and buy or sell goods (phones, laptops, furniture and more), and contact sellers directly by phone call or WhatsApp.
 
-It is a final-semester computer engineering project, built as a website first, with a mobile app planned later. The idea is inspired by Divar, adapted for a local community, with a strong focus on trust and safety.
+![Tests](https://github.com/HassanharunaIbrahim/KWAREWA/actions/workflows/tests.yml/badge.svg)
+
+KWAREWA is a classifieds marketplace for Nigeria. People can find skilled workers (electricians, mechanics, tailors and more) and buy or sell goods (phones, laptops, furniture and more) in any Nigerian state, and contact sellers directly by phone call or WhatsApp.
+
+It is a final-semester computer engineering project, built as a website first, with a mobile app planned later. The idea is inspired by Divar, adapted for Nigerian communities, with a strong focus on trust and safety.
 
 **Live test version:** https://engineeer.pythonanywhere.com (a test version for feedback, not a public launch)
 
-Built by: `<HASSAN HARUNA IBRAHIM>`, `<AHLUL-BAYT INTERNATIONAL UNIVERSITY>`
+Built by: Hassan Haruna Ibrahim, Ahlul-Bayt International University
 
 ## Features
 
 **For visitors**
-- Search by keyword, listing type (service or product), category, location and price range
+- Search by keyword, listing type (service or product), category, state, area or town, and price range
+- Filter by any of the 36 Nigerian states and the FCT, or search all of Nigeria
 - Sort by newest, oldest or price; 12 listings per page
-- Listing detail page with photos, price, contact buttons (Call, WhatsApp) and safety tips
+- Listing detail page with photos, price, location, contact buttons (Call, WhatsApp) and safety tips
 - Public seller page (username, member since, active listings; no private data)
 - Marketplace rules, privacy notice and help pages
 
 **For sellers (registered users)**
 - Register, log in, log out
-- Publish a listing with a photo; edit, mark as sold, or delete it
-- Remove photos from a listing (up to 5 photos per listing)
+- Publish a listing with a photo and the state where it is available
+- Edit a listing, add or remove photos (up to 5 per listing), mark it as sold, or delete it
 - "My listings" page showing the review status of each listing
 - Contact and appeal form to reach the team
 
@@ -33,6 +36,7 @@ Built by: `<HASSAN HARUNA IBRAHIM>`, `<AHLUL-BAYT INTERNATIONAL UNIVERSITY>`
 - Abuse limits per user per 24 hours: 5 new listings and 5 contact messages
 - Only the owner can edit, delete or close a listing (others get a 404)
 - Phone numbers are validated (digits only, with country code)
+- Photo files are deleted from disk when a photo or listing is removed
 
 ## Tech stack
 
@@ -40,6 +44,7 @@ Built by: `<HASSAN HARUNA IBRAHIM>`, `<AHLUL-BAYT INTERNATIONAL UNIVERSITY>`
 - SQLite for development and the current test deployment; PostgreSQL is supported through `DATABASE_URL`
 - Pillow for image uploads
 - WhiteNoise for static files, Gunicorn for production servers
+- GitHub Actions runs the automated tests on every push and pull request
 - Hosted on PythonAnywhere (free plan)
 
 ## Project structure
@@ -56,6 +61,7 @@ KWAREWA/
 │   ├── tests.py
 │   ├── templates/marketplace/
 │   └── static/marketplace/
+├── .github/workflows/tests.yml
 ├── manage.py
 ├── requirements.txt
 └── .env.example
@@ -110,9 +116,9 @@ Settings are read from environment variables, or from a local `.env` file that i
 python manage.py test
 ```
 
-The test suite covers search and filters, pagination, the pending and approval workflow, ownership permissions, the detail and seller pages, reports and the auto-hide rule, mark as sold, the contact form and abuse limits, and the information pages.
+The test suite covers search and filters (including state), pagination, the pending and approval workflow, ownership permissions, the detail and seller pages, reports and the auto-hide rule, mark as sold, photo removal and limits, the contact form and abuse limits, and the information pages.
 
-Before a release, also run:
+The same tests run automatically on GitHub for every push and pull request. Before a release, also run:
 
 ```
 python manage.py check --deploy
@@ -142,16 +148,16 @@ Back up `db.sqlite3` and the `media/` folder regularly, and keep a copy off the 
 - Free-tier hosting has limited CPU time, so this is a test deployment, not a public launch.
 - Password reset by email is not available yet; forgotten passwords are handled by an administrator.
 - No seller verification and no automatic scam detection.
+- Locations are limited to Nigerian states, with the area or town entered as free text.
 
 ## Roadmap
 
-- Photo reordering
 - Password reset by email
 - Seller verification badge
 - IP-based rate limiting
-- Automated tests on every push (GitHub Actions)
+- Photo reordering
 - REST API and a mobile app
 
 ## License
 
-`<Copyright (c) 2026 hassanharunaibrahim. All rights reserved. "All rights reserved">`
+Copyright (c) 2026 Hassan Haruna Ibrahim. All rights reserved.
