@@ -403,3 +403,23 @@ def service_worker(request):
 
 def offline(request):
     return render(request, "marketplace/offline.html")
+
+@login_required
+def rate_listing(request, listing_id):
+    listing = get_object_or_404(Listing, pk=listing_id)
+    if listing.owner == request.user:
+        return redirect("listing_detail", listing_id=listing.id)
+
+    existing = Rating.objects.filter(listing=listing, rater=request.user).first()
+    if request.method == "POST":
+        form = RatingForm(request.POST, instance=existing)
+        if form.is_valid():
+            rating = form.save(commit=False)
+            rating.listing = listing
+            rating.rater = request.user
+            rating.rated_user = listing.owner
+            rating.save()
+            return redirect("listing_detail", listing_id=listing.id)
+    else:
+        form = RatingForm(instance=existing)
+    return render(request, "marketplace/rate_listing.html", {"form": form, "listing": listing})

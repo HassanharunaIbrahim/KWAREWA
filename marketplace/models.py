@@ -111,6 +111,49 @@ class Listing(models.Model):
     def __str__(self):
         return self.title
 
+    def __str__(self):
+        return self.title
+
+    def average_rating(self):
+        from django.db.models import Avg
+        return self.ratings.aggregate(Avg("stars"))["stars__avg"] or 0
+
+    def ratings_count(self):
+        return self.ratings.count()
+
+class Rating(models.Model):
+    listing = models.ForeignKey(
+        Listing, on_delete=models.CASCADE, related_name="ratings"
+    )
+    rater = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ratings_given",
+    )
+    rated_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ratings_received",
+    )
+    stars = models.IntegerField(
+        choices=[(i, f"{i} Star") for i in range(1, 6)]
+    )
+    comment = models.TextField(blank=True, max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["listing", "rater"],
+                name="one_rating_per_user_per_listing",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.rater} rated {self.rated_user} - {self.stars} stars"
+
+class ListingImage(models.Model):
 
 class ListingImage(models.Model):
     listing = models.ForeignKey(
