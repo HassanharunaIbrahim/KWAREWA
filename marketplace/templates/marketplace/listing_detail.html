@@ -43,10 +43,19 @@
                 <li><span>Posted by</span><strong><a href="{% url 'seller_profile' listing.owner.username %}">{{ listing.owner.username }}</a></strong></li>
             </ul>
 
-            <p>⭐ {{ listing.average_rating|floatformat:1 }} ({{ listing.ratings_count }} ratings)</p>
-            {% if user.is_authenticated and not is_owner %}
-              <a href="{% url 'rate_listing' listing.id %}">Rate this worker</a>
-            {% endif %}
+            <p class="rating-line">
+                {% if seller_rating.count %}
+                    <span class="stars">&#9733; {{ seller_rating.average }}</span>
+                    from {{ seller_rating.count }} rating{{ seller_rating.count|pluralize }}
+                    for this seller.
+                {% else %}
+                    No ratings yet for this seller.
+                {% endif %}
+                <a href="{% url 'seller_profile' listing.owner.username %}">See reviews</a>
+                {% if user.is_authenticated and not is_owner %}
+                    &middot; <a href="{% url 'rate_seller' listing.owner.username %}">Rate this seller</a>
+                {% endif %}
+            </p>
 
             <div class="description">{{ listing.description|linebreaks }}</div>
 
@@ -78,15 +87,5 @@
             {% endif %}
         </div>
     </div>
-
-    <h3>Reviews</h3>
-    {% for r in listing.ratings.all %}
-      <div>
-        <b>{{ r.rater.username }}</b> - {{ r.stars }} ⭐
-        <p>{{ r.comment }}</p>
-      </div>
-    {% empty %}
-      <p>No ratings yet.</p>
-    {% endfor %}
 </div>
 {% endblock %}

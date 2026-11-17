@@ -11,14 +11,16 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import ContactForm, ListingForm, ReportForm
+from .forms import ContactForm, ListingForm, RatingForm, ReportForm
 from .models import (
     Category,
     ContactMessage,
     Listing,
     ListingImage,
     NigerianState,
+    Rating,
     Report,
+    seller_rating_summary,
 )
 
 # A listing goes back to "pending" when this many different users report it.
@@ -30,6 +32,7 @@ PAGE_SIZE = 12
 # Abuse limits (per user, per rolling 24 hours). Staff are exempt from the listing limit.
 MAX_LISTINGS_PER_DAY = 5
 MAX_CONTACTS_PER_DAY = 5
+MAX_RATINGS_PER_DAY = 10
 
 # Maximum number of photos on one listing.
 MAX_PHOTOS_PER_LISTING = 5
@@ -162,7 +165,12 @@ def listing_detail(request, listing_id):
     return render(
         request,
         "marketplace/listing_detail.html",
-        {"listing": listing, "is_owner": is_owner, "already_reported": already_reported},
+        {
+            "listing": listing,
+            "is_owner": is_owner,
+            "already_reported": already_reported,
+            "seller_rating": seller_rating_summary(listing.owner),
+        },
     )
 
 
@@ -369,6 +377,10 @@ def seller_profile(request, username):
     )
     paginator = Paginator(listings, PAGE_SIZE)
     page_obj = paginator.get_page(request.GET.get("page"))
+    reviews = Rating.objects.filter(rated_user=seller).select_related("rater")[:20]
+    my_rating = None
+    if request.user.is_authenticated:
+        my_rating = Rating.objects.filter(rater=request.user, rated_user=seller).first()
     return render(
         request,
         "marketplace/seller_profile.html",
@@ -377,8 +389,62 @@ def seller_profile(request, username):
             "listings": page_obj,
             "page_obj": page_obj,
             "paginator": paginator,
+            "seller_rating": seller_rating_summary(seller),
+            "reviews": reviews,
+            "my_rating": my_rating,
         },
     )
+
+
+@login_required
+def rate_seller(request, username):
+    seller = get_object_or_404(get_user_model(), username=username, is_active=True)
+
+    if seller.id == request.user.id:
+        messages.error(request, "You cannot rate yourself.")
+        return redirect("seller_profile", username=seller.username)
+
+    existing = Rating.objects.filter(rater=request.user, rated_user=seller).first()
+
+    if request.method == "POST":
+        if existing is None:
+            rated_today = Rating.objects.filter(
+                rater=request.user, created_at__gte=_last_24_hours()
+            ).count()
+            if rated_today >= MAX_RATINGS_PER_DAY:
+                messages.error(
+                    request,
+                    f"You can rate up to {MAX_RATINGS_PER_DAY} sellers per day. "
+                    "Please try again tomorrow.",
+                )
+                return redirect("seller_profile", username=seller.username)
+
+        form = RatingForm(request.POST, instance=existing)
+        if form.is_valid():
+            rating = form.save(commit=False)
+            rating.rater = request.user
+            rating.rated_user = seller
+            rating.save()
+            messages.success(request, "Thank you. Your rating was saved.")
+            return redirect("seller_profile", username=seller.username)
+    else:
+        form = RatingForm(instance=existing)
+
+    return render(
+        request,
+        "marketplace/rate_seller.html",
+        {"form": form, "seller": seller, "existing": existing},
+    )
+
+
+@login_required
+@require_POST
+def delete_rating(request, username):
+    seller = get_object_or_404(get_user_model(), username=username)
+    rating = get_object_or_404(Rating, rater=request.user, rated_user=seller)
+    rating.delete()
+    messages.success(request, "Your rating was removed.")
+    return redirect("seller_profile", username=seller.username)
 
 
 # ---- Installable app (Progressive Web App) ----
@@ -403,23 +469,3 @@ def service_worker(request):
 
 def offline(request):
     return render(request, "marketplace/offline.html")
-
-@login_required
-def rate_listing(request, listing_id):
-    listing = get_object_or_404(Listing, pk=listing_id)
-    if listing.owner == request.user:
-        return redirect("listing_detail", listing_id=listing.id)
-
-    existing = Rating.objects.filter(listing=listing, rater=request.user).first()
-    if request.method == "POST":
-        form = RatingForm(request.POST, instance=existing)
-        if form.is_valid():
-            rating = form.save(commit=False)
-            rating.listing = listing
-            rating.rater = request.user
-            rating.rated_user = listing.owner
-            rating.save()
-            return redirect("listing_detail", listing_id=listing.id)
-    else:
-        form = RatingForm(instance=existing)
-    return render(request, "marketplace/rate_listing.html", {"form": form, "listing": listing})

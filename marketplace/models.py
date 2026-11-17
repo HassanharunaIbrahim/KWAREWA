@@ -1,6 +1,7 @@
 from django.conf import settings
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
+from django.db.models import Avg, Count, F, Q
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
@@ -111,49 +112,6 @@ class Listing(models.Model):
     def __str__(self):
         return self.title
 
-    def __str__(self):
-        return self.title
-
-    def average_rating(self):
-        from django.db.models import Avg
-        return self.ratings.aggregate(Avg("stars"))["stars__avg"] or 0
-
-    def ratings_count(self):
-        return self.ratings.count()
-
-class Rating(models.Model):
-    listing = models.ForeignKey(
-        Listing, on_delete=models.CASCADE, related_name="ratings"
-    )
-    rater = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="ratings_given",
-    )
-    rated_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="ratings_received",
-    )
-    stars = models.IntegerField(
-        choices=[(i, f"{i} Star") for i in range(1, 6)]
-    )
-    comment = models.TextField(blank=True, max_length=1000)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["-created_at"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["listing", "rater"],
-                name="one_rating_per_user_per_listing",
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.rater} rated {self.rated_user} - {self.stars} stars"
-
-class ListingImage(models.Model):
 
 class ListingImage(models.Model):
     listing = models.ForeignKey(
@@ -244,6 +202,56 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"{self.get_topic_display()} from {self.name}"
+
+
+class Rating(models.Model):
+    """One user's star rating (1 to 5) and comment for one seller."""
+
+    rater = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ratings_given",
+    )
+    rated_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ratings_received",
+    )
+    stars = models.PositiveSmallIntegerField(
+        choices=[(i, f"{i} star" + ("s" if i > 1 else "")) for i in range(1, 6)],
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    comment = models.TextField(blank=True, max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["rater", "rated_user"],
+                name="one_rating_per_user_per_seller",
+            ),
+            models.CheckConstraint(
+                condition=~Q(rater=F("rated_user")),
+                name="no_self_rating",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.rater} rated {self.rated_user}: {self.stars}"
+
+
+def seller_rating_summary(user):
+    """Average stars (one decimal, or None) and number of ratings for a seller."""
+    data = Rating.objects.filter(rated_user=user).aggregate(
+        average=Avg("stars"), count=Count("id")
+    )
+    average = data["average"]
+    return {
+        "average": round(average, 1) if average else None,
+        "count": data["count"],
+    }
 
 
 @receiver(post_delete, sender=ListingImage)
