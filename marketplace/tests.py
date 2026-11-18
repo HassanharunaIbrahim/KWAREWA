@@ -590,3 +590,72 @@ class RatingTests(BaseTestCase):
         response = self.client.post(reverse("delete_rating", args=["owner"]))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(Rating.objects.count(), 1)
+
+
+from .models import Favorite
+
+
+class FavoriteTests(BaseTestCase):
+    def setUp(self):
+        self.listing = self.make_listing(title="Saveable ad", status=Listing.Status.ACTIVE)
+        self.url = reverse("toggle_favorite", args=[self.listing.id])
+
+    def test_saving_requires_login(self):
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("login", response.url)
+        self.assertEqual(Favorite.objects.count(), 0)
+
+    def test_user_can_save_and_unsave(self):
+        self.client.login(username="other", password=PASSWORD)
+        self.client.post(self.url)
+        self.assertEqual(Favorite.objects.filter(user=self.other).count(), 1)
+        self.client.post(self.url)
+        self.assertEqual(Favorite.objects.filter(user=self.other).count(), 0)
+
+    def test_owner_cannot_save_own_listing(self):
+        self.client.login(username="owner", password=PASSWORD)
+        self.client.post(self.url)
+        self.assertEqual(Favorite.objects.count(), 0)
+
+    def test_pending_listing_cannot_be_saved(self):
+        pending = self.make_listing(title="Pending ad")
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.post(reverse("toggle_favorite", args=[pending.id]))
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(Favorite.objects.count(), 0)
+
+    def test_saving_requires_post(self):
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 405)
+
+    def test_saved_page_requires_login(self):
+        response = self.client.get(reverse("favorites"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("login", response.url)
+
+    def test_saved_page_shows_only_my_saved_active_listings(self):
+        third = get_user_model().objects.create_user("third", password=PASSWORD)
+        not_saved = self.make_listing(title="Not saved ad", status=Listing.Status.ACTIVE)
+        thirds_pick = self.make_listing(title="Third persons ad", status=Listing.Status.ACTIVE)
+        sold = self.make_listing(title="Sold saved ad", status=Listing.Status.ACTIVE)
+        Favorite.objects.create(user=self.other, listing=self.listing)
+        Favorite.objects.create(user=self.other, listing=sold)
+        Favorite.objects.create(user=third, listing=thirds_pick)
+        sold.status = Listing.Status.CLOSED
+        sold.save()
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.get(reverse("favorites"))
+        self.assertContains(response, "Saveable ad")
+        self.assertNotContains(response, "Not saved ad")
+        self.assertNotContains(response, "Third persons ad")
+        self.assertNotContains(response, "Sold saved ad")
+
+    def test_detail_page_shows_save_button_to_other_users_only(self):
+        detail = reverse("listing_detail", args=[self.listing.id])
+        self.client.login(username="other", password=PASSWORD)
+        self.assertContains(self.client.get(detail), "Save listing")
+        self.client.logout()
+        self.client.login(username="owner", password=PASSWORD)
+        self.assertNotContains(self.client.get(detail), "Save listing")

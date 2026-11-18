@@ -68,6 +68,17 @@
                 {% endif %}
             </div>
 
+            {% if listing.status == "active" and not is_owner %}
+                {% if user.is_authenticated %}
+                <form class="save-form" method="post" action="{% url 'toggle_favorite' listing.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn secondary small">{% if is_saved %}Remove from saved{% else %}Save listing{% endif %}</button>
+                </form>
+                {% else %}
+                <p class="save-form"><a href="{% url 'login' %}?next={{ request.path }}">Log in to save this listing</a></p>
+                {% endif %}
+            {% endif %}
+
             <p class="safety">
                 Stay safe: never pay before you see the item or the work, and meet in a public place.
             </p>

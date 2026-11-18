@@ -1,6 +1,14 @@
 from django.contrib import admin, messages
 
-from .models import Category, ContactMessage, Listing, ListingImage, Rating, Report
+from .models import (
+    Category,
+    ContactMessage,
+    Favorite,
+    Listing,
+    ListingImage,
+    Rating,
+    Report,
+)
 
 
 @admin.register(Category)
@@ -119,3 +127,10 @@ class RatingAdmin(admin.ModelAdmin):
     list_filter = ("stars",)
     search_fields = ("rated_user__username", "rater__username", "comment")
     readonly_fields = ("rater", "rated_user", "stars", "comment", "created_at", "updated_at")
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ("user", "listing", "created_at")
+    search_fields = ("user__username", "listing__title")
+    readonly_fields = ("user", "listing", "created_at")

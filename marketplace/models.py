@@ -254,6 +254,32 @@ def seller_rating_summary(user):
     }
 
 
+class Favorite(models.Model):
+    """A listing that a user has saved to look at later."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="favorites",
+    )
+    listing = models.ForeignKey(
+        Listing, on_delete=models.CASCADE, related_name="favorited_by"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "listing"],
+                name="one_favorite_per_user_per_listing",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user} saved {self.listing.title}"
+
+
 @receiver(post_delete, sender=ListingImage)
 def delete_image_file(sender, instance, **kwargs):
     """Delete the photo file from disk when its database row is deleted."""

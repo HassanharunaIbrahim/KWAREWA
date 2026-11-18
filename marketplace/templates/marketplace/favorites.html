@@ -1,0 +1,44 @@
+{% extends "marketplace/base.html" %}
+
+{% block title %}Saved listings | KWAREWA{% endblock %}
+
+{% block content %}
+<div class="wrap page">
+    <div class="page-head">
+        <h1>Saved listings</h1>
+        <p>Listings you saved to look at later. Sold or removed listings disappear from this page.</p>
+    </div>
+
+    <div class="listings">
+        {% for fav in page_obj %}
+        <div class="saved-item">
+            {% with listing=fav.listing %}
+                {% include "marketplace/_listing_card.html" %}
+            {% endwith %}
+            <form method="post" action="{% url 'toggle_favorite' fav.listing.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="favorites">
+                <button type="submit" class="btn secondary small">Remove from saved</button>
+            </form>
+        </div>
+        {% empty %}
+        <div class="empty" style="grid-column:1 / -1">
+            <p>You have not saved any listings yet.</p>
+            <a href="{% url 'home' %}">Browse listings</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="pager" aria-label="Pages">
+        {% if page_obj.has_previous %}
+            <a class="btn secondary small" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a class="btn secondary small" href="?page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
