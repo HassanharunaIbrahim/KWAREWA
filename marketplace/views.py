@@ -15,6 +15,7 @@ from .forms import ContactForm, ListingForm, RatingForm, ReportForm
 from .models import (
     Category,
     ContactMessage,
+    Favorite,
     Listing,
     ListingImage,
     NigerianState,
@@ -170,6 +171,8 @@ def listing_detail(request, listing_id):
             "is_owner": is_owner,
             "already_reported": already_reported,
             "seller_rating": seller_rating_summary(listing.owner),
+            "is_saved": user.is_authenticated
+            and Favorite.objects.filter(user=user, listing=listing).exists(),
         },
     )
 
@@ -445,6 +448,47 @@ def delete_rating(request, username):
     rating.delete()
     messages.success(request, "Your rating was removed.")
     return redirect("seller_profile", username=seller.username)
+
+
+# ---- Saved listings ----
+
+@login_required
+@require_POST
+def toggle_favorite(request, listing_id):
+    listing = get_object_or_404(Listing, id=listing_id, status=Listing.Status.ACTIVE)
+
+    if listing.owner_id == request.user.id:
+        messages.error(request, "You cannot save your own listing.")
+        return redirect("listing_detail", listing_id=listing.id)
+
+    favorite, created = Favorite.objects.get_or_create(
+        user=request.user, listing=listing
+    )
+    if created:
+        messages.success(request, "Saved. You can find it under Saved.")
+    else:
+        favorite.delete()
+        messages.info(request, "Removed from your saved listings.")
+
+    if request.POST.get("next") == "favorites":
+        return redirect("favorites")
+    return redirect("listing_detail", listing_id=listing.id)
+
+
+@login_required
+def favorites(request):
+    saved = (
+        Favorite.objects.filter(user=request.user, listing__status=Listing.Status.ACTIVE)
+        .select_related("listing__category")
+        .prefetch_related("listing__images")
+    )
+    paginator = Paginator(saved, PAGE_SIZE)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return render(
+        request,
+        "marketplace/favorites.html",
+        {"page_obj": page_obj, "paginator": paginator},
+    )
 
 
 # ---- Installable app (Progressive Web App) ----

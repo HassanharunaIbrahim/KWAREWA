@@ -25,6 +25,7 @@
             {% if user.is_authenticated %}
                 <span class="welcome">Hello, {{ user.username }}</span>
                 <a href="{% url 'my_listings' %}">My listings</a>
+                <a href="{% url 'favorites' %}">Saved</a>
                 <a class="btn-publish" href="{% url 'add_listing' %}">Publish listing</a>
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
