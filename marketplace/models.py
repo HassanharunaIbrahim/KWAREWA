@@ -6,8 +6,8 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
 phone_validator = RegexValidator(
-    regex=r"^\+?\d{10,15}$",
-    message="Digits only with country code, e.g. 2348012345678.",
+    regex=r"^\d{10,15}$",
+    message="Digits only, with country code and no + sign, e.g. 2348012345678.",
 )
 
 # Maximum photos per listing. Used by the form and the views.
