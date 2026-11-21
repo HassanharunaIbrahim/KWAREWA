@@ -117,6 +117,26 @@ class DetailPageTests(BaseTestCase):
         response = self.client.get(reverse("listing_detail", args=[listing.id]))
         self.assertEqual(response.status_code, 200)
 
+    def test_visitor_cannot_see_phone_number(self):
+        listing = self.make_listing(
+            title="Contact test",
+            status=Listing.Status.ACTIVE,
+            contact_phone="2348099999999",
+        )
+        response = self.client.get(reverse("listing_detail", args=[listing.id]))
+        self.assertNotContains(response, "2348099999999")
+        self.assertContains(response, "create a free account")
+
+    def test_logged_in_user_can_see_phone_number(self):
+        listing = self.make_listing(
+            title="Contact test",
+            status=Listing.Status.ACTIVE,
+            contact_phone="2348099999999",
+        )
+        self.client.login(username="other", password=PASSWORD)
+        response = self.client.get(reverse("listing_detail", args=[listing.id]))
+        self.assertContains(response, "2348099999999")
+
 
 class ReportTests(BaseTestCase):
     def setUp(self):

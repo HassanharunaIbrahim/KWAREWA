@@ -60,11 +60,19 @@
             <div class="description">{{ listing.description|linebreaks }}</div>
 
             <div class="contact">
-                {% if listing.contact_phone %}
-                    <a href="tel:{{ listing.contact_phone }}">Call</a>
-                {% endif %}
-                {% if listing.contact_whatsapp %}
-                    <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                {% if can_see_contact %}
+                    {% if listing.contact_phone %}
+                        <a href="tel:{{ listing.contact_phone }}">Call</a>
+                    {% endif %}
+                    {% if listing.contact_whatsapp %}
+                        <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                    {% endif %}
+                {% else %}
+                    <div class="notice">
+                        To see the seller's phone number and WhatsApp, please
+                        <a href="{% url 'login' %}?next={{ request.path }}">log in</a>
+                        or <a href="{% url 'register' %}">create a free account</a>.
+                    </div>
                 {% endif %}
             </div>
 
