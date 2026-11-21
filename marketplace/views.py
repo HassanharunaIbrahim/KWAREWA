@@ -171,6 +171,8 @@ def listing_detail(request, listing_id):
             "seller_rating": seller_rating_summary(listing.owner),
             "is_saved": user.is_authenticated
             and Favorite.objects.filter(user=user, listing=listing).exists(),
+            # Phone and WhatsApp are shown only to logged-in users.
+            "can_see_contact": user.is_authenticated,
         },
     )
 
