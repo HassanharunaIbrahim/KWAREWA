@@ -10,6 +10,9 @@ phone_validator = RegexValidator(
     message="Digits only with country code, e.g. 2348012345678.",
 )
 
+# Maximum photos per listing. Used by the form and the views.
+MAX_PHOTOS_PER_LISTING = 5
+
 
 class NigerianState(models.TextChoices):
     ABIA = "abia", "Abia"

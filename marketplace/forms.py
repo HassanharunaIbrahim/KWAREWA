@@ -1,12 +1,25 @@
 from django import forms
 
-from .models import ContactMessage, Listing, Rating, Report
+from .models import (
+    MAX_PHOTOS_PER_LISTING,
+    ContactMessage,
+    Listing,
+    Rating,
+    Report,
+)
 
 
 class ListingForm(forms.ModelForm):
+    description = forms.CharField(
+        max_length=2000,
+        widget=forms.Textarea(attrs={"rows": 5}),
+    )
     photo = forms.ImageField(
         required=False,
-        help_text="Optional. JPG or PNG, up to 5 MB. A listing can have up to 5 photos.",
+        help_text=(
+            "Optional. JPG or PNG, up to 5 MB. "
+            f"A listing can have up to {MAX_PHOTOS_PER_LISTING} photos."
+        ),
     )
 
     class Meta:
@@ -39,7 +52,6 @@ class ListingForm(forms.ModelForm):
         }
         widgets = {
             "title": forms.TextInput(attrs={"placeholder": "e.g. Generator repair"}),
-            "description": forms.Textarea(attrs={"rows": 5}),
             "location": forms.TextInput(attrs={"placeholder": "e.g. Samaru, Zaria"}),
             "contact_phone": forms.TextInput(attrs={"placeholder": "2348012345678"}),
             "contact_whatsapp": forms.TextInput(attrs={"placeholder": "2348012345678"}),
@@ -47,8 +59,16 @@ class ListingForm(forms.ModelForm):
 
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")
-        if photo and photo.size > 5 * 1024 * 1024:
+        if not photo:
+            return photo
+        if photo.size > 5 * 1024 * 1024:
             raise forms.ValidationError("Photo must be under 5 MB.")
+        # When editing, stop the upload before anything is saved.
+        if self.instance.pk and self.instance.images.count() >= MAX_PHOTOS_PER_LISTING:
+            raise forms.ValidationError(
+                f"This listing already has {MAX_PHOTOS_PER_LISTING} photos. "
+                "Remove one before adding another."
+            )
         return photo
 
 

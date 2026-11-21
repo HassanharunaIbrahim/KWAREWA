@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 
 from .forms import ContactForm, ListingForm, RatingForm, ReportForm
 from .models import (
+    MAX_PHOTOS_PER_LISTING,
     Category,
     ContactMessage,
     Favorite,
@@ -34,9 +35,6 @@ PAGE_SIZE = 12
 MAX_LISTINGS_PER_DAY = 5
 MAX_CONTACTS_PER_DAY = 5
 MAX_RATINGS_PER_DAY = 10
-
-# Maximum number of photos on one listing.
-MAX_PHOTOS_PER_LISTING = 5
 
 ORDERINGS = {
     "newest": ("-created_at",),
@@ -271,14 +269,7 @@ def edit_listing(request, listing_id):
             listing.save()
             photo = form.cleaned_data.get("photo")
             if photo:
-                if listing.images.count() < MAX_PHOTOS_PER_LISTING:
-                    ListingImage.objects.create(listing=listing, image=photo)
-                else:
-                    messages.warning(
-                        request,
-                        f"A listing can have up to {MAX_PHOTOS_PER_LISTING} photos. "
-                        "Remove one to add another.",
-                    )
+                ListingImage.objects.create(listing=listing, image=photo)
             if was_active:
                 messages.success(
                     request,

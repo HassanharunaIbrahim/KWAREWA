@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -5,11 +6,20 @@ from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
-from .models import Category, ContactMessage, Listing, ListingImage, Report
+from .models import (
+    Category,
+    ContactMessage,
+    Favorite,
+    Listing,
+    ListingImage,
+    Rating,
+    Report,
+)
 
 PASSWORD = "Pass12345!x"
 
@@ -249,7 +259,8 @@ class ListingLimitTests(BaseTestCase):
         for i in range(5):
             self.make_listing(title=f"Earlier listing {i}")
         self.client.login(username="owner", password=PASSWORD)
-        self.client.post(reverse("add_listing"), self.valid_data())
+        response = self.client.post(reverse("add_listing"), self.valid_data())
+        self.assertRedirects(response, reverse("my_listings"))
         self.assertEqual(Listing.objects.filter(owner=self.owner).count(), 5)
 
 
@@ -300,6 +311,7 @@ class SearchFilterTests(BaseTestCase):
         self.assertLess(html.index("Cheap thing"), html.index("Pricey thing"))
 
     def test_pagination_shows_twelve_per_page(self):
+        # Relies on newest-first ordering: the last-created items appear on page 1.
         for i in range(13):
             self.active(title=f"Item {i:02d}")
         first = self.client.get(reverse("home"))
@@ -408,7 +420,14 @@ class PhotoManagementTests(BaseTestCase):
         self.client.login(username="owner", password=PASSWORD)
         data = self.valid_data()
         data["photo"] = make_image_file("sixth.png")
-        self.client.post(reverse("edit_listing", args=[listing.id]), data)
+        response = self.client.post(reverse("edit_listing", args=[listing.id]), data)
+        # The form is shown again with an error, and nothing is saved.
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"],
+            "photo",
+            "This listing already has 5 photos. Remove one before adding another.",
+        )
         self.assertEqual(listing.images.count(), 5)
 
 
@@ -466,9 +485,6 @@ class NationwideTests(BaseTestCase):
         self.assertEqual(listing.state, "lagos")
 
 
-import json
-
-
 class InstallableAppTests(TestCase):
     def test_manifest_is_valid_json_with_icons(self):
         response = self.client.get(reverse("manifest"))
@@ -499,11 +515,6 @@ class InstallableAppTests(TestCase):
         response = self.client.get(reverse("home"))
         self.assertContains(response, 'rel="manifest"')
         self.assertContains(response, "serviceWorker")
-
-
-from django.db import IntegrityError, transaction
-
-from .models import Rating
 
 
 class RatingTests(BaseTestCase):
@@ -541,7 +552,8 @@ class RatingTests(BaseTestCase):
 
     def test_stars_must_be_between_one_and_five(self):
         self.client.login(username="other", password=PASSWORD)
-        self.rate(6)
+        response = self.rate(6)
+        self.assertIn("stars", response.context["form"].errors)
         self.rate(0)
         self.assertEqual(Rating.objects.count(), 0)
 
@@ -590,9 +602,6 @@ class RatingTests(BaseTestCase):
         response = self.client.post(reverse("delete_rating", args=["owner"]))
         self.assertEqual(response.status_code, 404)
         self.assertEqual(Rating.objects.count(), 1)
-
-
-from .models import Favorite
 
 
 class FavoriteTests(BaseTestCase):
