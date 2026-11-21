@@ -69,6 +69,18 @@ class ListingWorkflowTests(BaseTestCase):
         response = self.client.get(reverse("home"))
         self.assertContains(response, "Visible one")
 
+    def test_home_page_hides_phone_numbers_from_visitors(self):
+        self.make_listing(
+            title="Card test",
+            status=Listing.Status.ACTIVE,
+            contact_phone="2348077777777",
+            contact_whatsapp="2348077777777",
+        )
+        response = self.client.get(reverse("home"))
+        self.assertContains(response, "Card test")
+        self.assertNotContains(response, "2348077777777")
+        self.assertNotContains(response, "wa.me")
+
     def test_search_by_category_name(self):
         self.make_listing(title="Suit sewing", status=Listing.Status.ACTIVE)
         response = self.client.get(reverse("home"), {"q": "tailor"})

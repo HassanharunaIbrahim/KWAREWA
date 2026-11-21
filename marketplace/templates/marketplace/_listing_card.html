@@ -17,11 +17,20 @@
     {% if listing.price %}<p class="price">₦{{ listing.price|floatformat:2 }}</p>{% endif %}
 
     <div class="contact">
-        {% if listing.contact_phone %}
-            <a href="tel:{{ listing.contact_phone }}">Call</a>
-        {% endif %}
-        {% if listing.contact_whatsapp %}
-            <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        {% if user.is_authenticated %}
+            {% if listing.contact_phone %}
+                <a href="tel:{{ listing.contact_phone }}">Call</a>
+            {% endif %}
+            {% if listing.contact_whatsapp %}
+                <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            {% endif %}
+        {% else %}
+            {% if listing.contact_phone %}
+                <a href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}">Call</a>
+            {% endif %}
+            {% if listing.contact_whatsapp %}
+                <a class="wa" href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}">WhatsApp</a>
+            {% endif %}
         {% endif %}
     </div>
 </article>
