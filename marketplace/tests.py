@@ -117,15 +117,20 @@ class DetailPageTests(BaseTestCase):
         response = self.client.get(reverse("listing_detail", args=[listing.id]))
         self.assertEqual(response.status_code, 200)
 
-    def test_visitor_cannot_see_phone_number(self):
+    def test_visitor_sees_buttons_that_lead_to_login(self):
         listing = self.make_listing(
             title="Contact test",
             status=Listing.Status.ACTIVE,
             contact_phone="2348099999999",
+            contact_whatsapp="2348099999999",
         )
         response = self.client.get(reverse("listing_detail", args=[listing.id]))
+        # The buttons are visible, but the number is not in the page.
+        self.assertContains(response, ">Call</a>")
+        self.assertContains(response, ">WhatsApp</a>")
         self.assertNotContains(response, "2348099999999")
-        self.assertContains(response, "create a free account")
+        self.assertNotContains(response, "tel:")
+        self.assertNotContains(response, "wa.me")
 
     def test_logged_in_user_can_see_phone_number(self):
         listing = self.make_listing(
