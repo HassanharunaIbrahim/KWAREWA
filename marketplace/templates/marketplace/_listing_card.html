@@ -26,10 +26,10 @@
             {% endif %}
         {% else %}
             {% if listing.contact_phone %}
-                <a href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}">Call</a>
+                <a href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}" title="Log in to see the seller's number">Call</a>
             {% endif %}
             {% if listing.contact_whatsapp %}
-                <a class="wa" href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}">WhatsApp</a>
+                <a class="wa" href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}" title="Log in to see the seller's number">WhatsApp</a>
             {% endif %}
         {% endif %}
     </div>

@@ -60,7 +60,7 @@
             <div class="description">{{ listing.description|linebreaks }}</div>
 
             <div class="contact">
-                {% if can_see_contact %}
+                {% if user.is_authenticated %}
                     {% if listing.contact_phone %}
                         <a href="tel:{{ listing.contact_phone }}">Call</a>
                     {% endif %}
@@ -68,27 +68,23 @@
                         <a class="wa" href="https://wa.me/{{ listing.contact_whatsapp }}" target="_blank" rel="noopener noreferrer">WhatsApp</a>
                     {% endif %}
                 {% else %}
-                    {# Visitors see the buttons, but the number stays out of the page. #}
-                    <a href="{% url 'login' %}?next={{ request.path }}">Call</a>
-                    {% if listing.contact_whatsapp %}
-                        <a class="wa" href="{% url 'login' %}?next={{ request.path }}">WhatsApp</a>
+                    {% if listing.contact_phone %}
+                        <a href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}" title="Log in to see the seller's number">Call</a>
                     {% endif %}
-                    <p class="contact-note">
-                        <a href="{% url 'login' %}?next={{ request.path }}">Log in</a>
-                        or <a href="{% url 'register' %}">create a free account</a>
-                        to see the seller's number.
-                    </p>
+                    {% if listing.contact_whatsapp %}
+                        <a class="wa" href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}" title="Log in to see the seller's number">WhatsApp</a>
+                    {% endif %}
                 {% endif %}
             </div>
 
             {% if listing.status == "active" and not is_owner %}
                 {% if user.is_authenticated %}
-                <form class="save-form" method="post" action="{% url 'toggle_favorite' listing.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn secondary small">{% if is_saved %}Remove from saved{% else %}Save listing{% endif %}</button>
-                </form>
+                    <form class="save-form" method="post" action="{% url 'toggle_favorite' listing.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn secondary small">{% if is_saved %}Remove from saved{% else %}Save listing{% endif %}</button>
+                    </form>
                 {% else %}
-                <p class="save-form"><a href="{% url 'login' %}?next={{ request.path }}">Log in to save this listing</a></p>
+                    <p class="save-form"><a href="{% url 'login' %}?next={% url 'listing_detail' listing.id %}">Log in to save this listing</a></p>
                 {% endif %}
             {% endif %}
 
