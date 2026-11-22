@@ -152,6 +152,7 @@ else:
             "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
             "OPTIONS": {
                 "host": os.environ.get("EMAIL_HOST", "localhost"),
+                "port": int(os.environ.get("EMAIL_PORT", "587")),
                 "use_tls": env_bool("EMAIL_USE_TLS", True),
                 "username": os.environ.get("EMAIL_HOST_USER", ""),
                 "password": os.environ.get("EMAIL_HOST_PASSWORD", ""),
