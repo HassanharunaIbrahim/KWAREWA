@@ -705,3 +705,45 @@ class FavoriteTests(BaseTestCase):
         self.client.logout()
         self.client.login(username="owner", password=PASSWORD)
         self.assertNotContains(self.client.get(detail), "Save listing")
+
+from urllib.parse import urlparse
+
+from django.core import mail
+
+
+class PasswordResetTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            "resetter", email="reset@example.com", password=PASSWORD
+        )
+
+    def test_reset_email_sent_for_known_address(self):
+        self.client.post(reverse("password_reset"), {"email": "reset@example.com"})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("/accounts/reset/", mail.outbox[0].body)
+
+    def test_unknown_address_gets_same_response_and_no_email(self):
+        response = self.client.post(reverse("password_reset"), {"email": "nobody@example.com"})
+        self.assertRedirects(response, reverse("password_reset_done"))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_full_reset_changes_the_password(self):
+        self.client.post(reverse("password_reset"), {"email": "reset@example.com"})
+        link = next(w for w in mail.outbox[0].body.split() if "/accounts/reset/" in w)
+        path = urlparse(link).path
+        response = self.client.get(path, follow=True)
+        set_url = response.redirect_chain[-1][0]
+        self.client.post(
+            set_url,
+            {"new_password1": "Brand-new-7x!pass", "new_password2": "Brand-new-7x!pass"},
+        )
+        self.assertTrue(
+            self.client.login(username="resetter", password="Brand-new-7x!pass")
+        )
+
+    def test_registration_requires_an_email(self):
+        response = self.client.post(
+            reverse("register"),
+            {"username": "noemail", "password1": "Strong-pass-2026!", "password2": "Strong-pass-2026!"},
+        )
+        self.assertFalse(get_user_model().objects.filter(username="noemail").exists())
