@@ -747,3 +747,15 @@ class PasswordResetTests(TestCase):
             {"username": "noemail", "password1": "Strong-pass-2026!", "password2": "Strong-pass-2026!"},
         )
         self.assertFalse(get_user_model().objects.filter(username="noemail").exists())
+
+    def test_registration_rejects_duplicate_email(self):
+        self.client.post(
+            reverse("register"),
+            {
+                "username": "second",
+                "email": "RESET@example.com",
+                "password1": "Strong-pass-2026!",
+                "password2": "Strong-pass-2026!",
+            },
+        )
+        self.assertFalse(get_user_model().objects.filter(username="second").exists())
